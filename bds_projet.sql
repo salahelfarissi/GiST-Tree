@@ -59,3 +59,31 @@ where r_code = '09.';
 CREATE INDEX r_09_geom_idx
 ON r_09
 USING gist(geom);
+--
+update p_09 set menages = case
+when p_nom = 'AGADIR IDA OU TANAN' then 163283
+when p_nom = 'CHTOUKA AIT BAHA' then 99852
+when p_nom = 'INEZGANE AIT MELLOUL' then 142549
+when p_nom = 'TAROUDANNT' then 180895
+when p_nom = 'TATA' then 22675
+when p_nom = 'TIZNIT' then 52671
+end;
+-- Q1
+select p_nom, menages from p_09
+order by menages desc
+limit 1;
+--
+ALTER TABLE p_09
+ALTER COLUMN geom TYPE geometry(MULTIPOLYGON, 26192) USING ST_Transform(ST_SetSRID(geom,4326),26192);
+--
+ALTER TABLE p_09
+ADD COLUMN menages_04 integer;
+--
+update p_09 set menages_04 = case
+when p_nom = 'AGADIR IDA OU TANAN' then 103395
+when p_nom = 'CHTOUKA AIT BAHA' then 61419
+when p_nom = 'INEZGANE AIT MELLOUL' then 87786
+when p_nom = 'TAROUDANNT' then 138054
+when p_nom = 'TATA' then 20349
+when p_nom = 'TIZNIT' then 45188
+end;
