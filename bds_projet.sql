@@ -16,8 +16,42 @@ shp2pgsql -s 4326 -g geom -I .\communes.shp communes | psql -U elfarissi -d mono
 -- update statistics
 vacuum analyze regions, provinces, communes;
 --
+delete from regions where code_regio is null;
+--
 ALTER TABLE regions
 RENAME COLUMN code_regio TO r_code;
 --
 ALTER TABLE regions
 RENAME COLUMN nom_region TO r_nom;
+--
+ALTER TABLE regions
+DROP COLUMN gid,
+DROP COLUMN objectid,
+DROP COLUMN population,
+DROP COLUMN menages,
+DROP COLUMN etrangers,
+DROP COLUMN marocains,
+DROP COLUMN ruleid,
+DROP COLUMN shape__are,
+DROP COLUMN shape__len;
+--
+alter table regions
+alter column r_code type varchar(3);
+--
+ALTER TABLE regions ADD COLUMN id serial primary key;
+--
+update communes
+set nom_commun = upper(nom_commun);
+--
+select * 
+into c_09
+from communes where c_code like '09.%';
+--
+select * 
+into p_09
+from provinces where p_code like '09.%';
+--
+select * 
+into r_09
+from regions
+where r_code = '09.';
