@@ -26,3 +26,14 @@ select nom_provin as "name", st_transform(geom, 26192) as geom
 into souss_massa
 from provinces
 where nom_provin in ('AGADIR IDA OU TANAN', 'INEZGANE AIT MELLOUL', 'TAROUDANNT', 'CHTOUKA AIT BAHA', 'TATA', 'TIZNIT');
+--
+select st_srid(geom) from souss_massa limit 1;
+--
+select max(length(name)) from souss_massa;
+--
+alter table souss_massa
+alter column "name" type varchar(20);
+--
+update souss_massa
+set "name" = 'AGADIR IDA OU TANANE'
+where "name" = 'AGADIR IDA OU TANAN';
