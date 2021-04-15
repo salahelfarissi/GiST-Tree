@@ -55,3 +55,7 @@ select *
 into r_09
 from regions
 where r_code = '09.';
+--
+CREATE INDEX r_09_geom_idx
+ON r_09
+USING gist(geom);
