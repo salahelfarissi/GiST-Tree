@@ -69,9 +69,13 @@ when p_nom = 'TATA' then 22675
 when p_nom = 'TIZNIT' then 52671
 end;
 -- Q1
-select p_nom, menages from p_09
-order by menages desc
+select p_nom, menages_18 from p_09
+order by menages_18 desc
 limit 1;
+
+   p_nom    | menages_18
+------------+------------
+ TAROUDANNT |     180895
 --
 ALTER TABLE p_09
 ALTER COLUMN geom TYPE geometry(MULTIPOLYGON, 26192) USING ST_Transform(ST_SetSRID(geom,4326),26192);
