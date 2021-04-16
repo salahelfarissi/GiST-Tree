@@ -182,3 +182,16 @@ ORDER BY c_nbre DESC
   p_id   | p_nom | c_nbre | area_km2
 ---------+-------+--------+----------
  09.551. | TATA  |     20 | 26481.79
+
+ -- Q6
+ select
+	r_nom,
+	pop_m_u,
+	pop_m_r,
+	pop_f_u,
+	pop_f_r
+from r_09;
+
+    r_nom    | pop_m_u | pop_m_r | pop_f_u | pop_f_r
+-------------+---------+---------+---------+---------
+ SOUSS-MASSA |     0.5 |    0.47 |     0.5 |    0.53
