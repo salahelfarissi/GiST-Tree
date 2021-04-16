@@ -111,4 +111,42 @@ limit 1;
 ---------+------------+--------
  09.541. | TAROUDANNT |     89
 
- 
+ -- Q4
+ SELECT
+	SubStr(p.p_code,1,3) AS r_id,
+	r.r_nom,
+ 	count(*) AS p_nbre,
+	ST_Equals(ST_Union(p.geom), r.geom),
+	ST_Union(p.geom) AS geom
+FROM p_09 p
+JOIN r_09 r
+ON SubStr(p_code,1,3) = r_code
+GROUP BY r_id, r.r_nom, r.geom
+order by p_nbre desc;
+
+r_id |    r_nom    | p_nbre | st_equals
+------+-------------+--------+-----------
+ 09.  | SOUSS-MASSA |      6 | t
+
+ -- Other method
+
+ -- Make the region table
+CREATE TABLE r_geoms AS
+SELECT
+  ST_Union(geom) AS geom,
+  SubStr(p_code,1,3) AS r_id
+FROM p_09
+GROUP BY r_id;
+
+-- Index the r_id
+CREATE INDEX r_geoms_r_id_idx
+  ON r_geoms (r_id);
+
+-- Test equality of geoms
+select st_equals(r.geom, g.geom)
+from r_09 r, r_geoms g
+where r.r_code = g.r_id;
+
+ st_equals
+-----------
+ t
