@@ -151,3 +151,24 @@ where r.r_code = g.r_id;
  st_equals
 -----------
  t
+
+ -- Q5
+ SELECT * FROM (
+	SELECT
+	SubStr(c.c_code,1,7) AS p_id,
+	p.p_nom,
+ 	count(*) AS c_nbre,
+	round((st_area(p.geom)/1000000)::numeric, 2) AS area_km2,
+	ST_Union(c.geom) AS geom
+FROM c_09 c
+JOIN p_09 p
+ON SubStr(c_code,1,7) = p_code
+GROUP BY p_id, p.p_nom, area_km2
+ORDER BY c_nbre DESC
+	) AS subq
+	ORDER BY area_km2 DESC
+	LIMIT 1;
+
+  p_id   | p_nom | c_nbre | area_km2
+---------+-------+--------+----------
+ 09.551. | TATA  |     20 | 26481.79
