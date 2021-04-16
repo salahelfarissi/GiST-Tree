@@ -3,7 +3,8 @@ create database postgis;
 create SCHEMA postgis;
 CREATE EXTENSION postgis SCHEMA postgis;
 UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'postgis';
--- 
+
+-- bds project database
 create database mono template postgis;
 ALTER DATABASE mono SET search_path='$user', public, postgis;
 --
