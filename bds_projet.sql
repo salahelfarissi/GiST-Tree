@@ -98,18 +98,19 @@ select sum(menages_04) menages_04, sum(menages_14) menages_14 from p_09;
 SELECT
 	SubStr(c.c_code,1,7) AS p_id,
 	p.p_nom,
- 	count(*) AS c_nbre,
+ 	count(*) AS cr_nbre,
 	ST_Union(c.geom) AS geom
 FROM c_09 c
 JOIN p_09 p
 ON SubStr(c_code,1,7) = p_code
+WHERE c.c_type = 'R'
 GROUP BY p_id, p.p_nom
-order by c_nbre desc
+order by cr_nbre desc
 limit 1;
 
-  p_id   |   p_nom    | c_nbre
----------+------------+--------
- 09.541. | TAROUDANNT |     89
+  p_id   |   p_nom    | cr_nbre
+---------+------------+---------
+ 09.541. | TAROUDANNT |      81  
 
  -- Q4
  SELECT
