@@ -87,3 +87,11 @@ when p_nom = 'TAROUDANNT' then 138054
 when p_nom = 'TATA' then 20349
 when p_nom = 'TIZNIT' then 45188
 end;
+-- Q2
+select sum(menages_04) menages_04, sum(menages_14) menages_14 from p_09;
+
+ menages_04 | menages_14
+------------+------------
+     456191 |     601511
+
+--
