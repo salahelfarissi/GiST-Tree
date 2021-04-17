@@ -132,6 +132,22 @@ id,p_code,p_nom,menages_04,menages_14,menages_18
 --
 id,r_code,r_nom,pop_m_u,pop_m_r,pop_f_u,pop_f_r
 1,09.,SOUSS-MASSA,0.5,0.47,0.5,0.53
+--
+ALTER TABLE c_09 ADD PRIMARY KEY (c_code);
+ALTER TABLE c_09 ADD COLUMN p_code varchar(7);
+UPDATE c_09 set p_code = substr(c_code, 1, 7); 
+
+ALTER TABLE c_09 ADD CONSTRAINT p_fk FOREIGN KEY (p_code)
+REFERENCES p_09 (p_code) ON DELETE CASCADE;
+
+ALTER TABLE p_09 ADD PRIMARY KEY (p_code);
+ALTER TABLE p_09 ADD COLUMN r_code varchar(3);
+UPDATE p_09 set r_code = substr(p_code, 1, 3);
+
+ALTER TABLE r_09 ADD PRIMARY KEY (r_code);
+
+ALTER TABLE p_09 ADD CONSTRAINT r_fk FOREIGN KEY (r_code)
+REFERENCES r_09 (r_code) ON DELETE CASCADE;
 -- Q1
 SELECT p_nom, menages_18 FROM p_09
 ORDER BY menages_18 DESC
