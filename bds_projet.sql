@@ -106,18 +106,36 @@ WHEN p_nom = 'TAROUDANNT' THEN 180895
 WHEN p_nom = 'TATA' THEN 22675
 WHEN p_nom = 'TIZNIT' THEN 52671
 END;
--- PK creation
-ALTER TABLE r_09 ADD COLUMN id SERIAL PRIMARY KEY;
-ALTER TABLE p_09 ADD COLUMN id SERIAL PRIMARY KEY;
-ALTER TABLE c_09 ADD COLUMN id SERIAL PRIMARY KEY;
-
+--
 ALTER TABLE p_09
 ALTER COLUMN geom TYPE geometry(MULTIPOLYGON, 26192) USING ST_Transform(ST_SetSRID(geom,4326),26192);
-
+--
+\copy (select id, c_code, c_type, c_nom from c_09 LIMIT 5) to c_09.csv csv header;
+--
+id,c_code,c_type,c_nom
+1,09.541.01.01.,M,AIT IAAZA
+2,09.581.01.07.,M,TIZNIT
+3,09.541.07.03.,R,AHL TIFNOUTE
+4,09.541.04.59.,R,TIGOUGA
+5,09.541.03.15.,R,OUALQADI
+--
+\copy (select id, p_code, p_nom, menages_04, menages_14, menages_18 from p_09 LIMIT 5) to p_09.csv csv header
+--
+id,p_code,p_nom,menages_04,menages_14,menages_18
+1,09.001.,AGADIR IDA OU TANAN,103395,143752,163283
+2,09.163.,CHTOUKA AIT BAHA,61419,88732,99852
+4,09.551.,TATA,20349,22359,22675
+5,09.581.,TIZNIT,45188,51142,52671
+3,09.273.,INEZGANE AIT MELLOUL,87786,124340,142549
+--
+\copy (select id, r_code, r_nom, pop_m_u, pop_m_r, pop_f_u, pop_f_r from r_09 LIMIT 5) to r_09.csv csv header; 
+--
+id,r_code,r_nom,pop_m_u,pop_m_r,pop_f_u,pop_f_r
+1,09.,SOUSS-MASSA,0.5,0.47,0.5,0.53
 -- Q1
 SELECT p_nom, menages_18 FROM p_09
-order by menages_18 desc
-limit 1;
+ORDER BY menages_18 DESC
+LIMIT 1;
 
    p_nom    | menages_18
 ------------+------------
@@ -141,8 +159,8 @@ JOIN p_09 p
 ON SubStr(c_code,1,7) = p_code
 WHERE c.c_type = 'R'
 GROUP BY p_id, p.p_nom
-order by cr_nbre desc
-limit 1;
+ORDER BY cr_nbre DESC
+LIMIT 1;
 
   p_id   |   p_nom    | cr_nbre
 ---------+------------+---------
@@ -159,7 +177,7 @@ FROM p_09 p
 JOIN r_09 r
 ON SubStr(p_code,1,3) = r_code
 GROUP BY r_id, r.r_nom, r.geom
-order by p_nbre desc;
+ORDER BY p_nbre DESC;
 
 r_id |    r_nom    | p_nbre | st_equals
 ------+-------------+--------+-----------
