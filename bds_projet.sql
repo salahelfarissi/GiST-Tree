@@ -1,29 +1,37 @@
--- postgis DATABASE template creation 
-CREATE DATABAS postgis;
+-- I created a postgis database to be use as a template
+
+CREATE DATABASE postgis;
 CREATE SCHEMA postgis;
 CREATE EXTENSION postgis SCHEMA postgis;
 UPDATE pg_DATABASE SET datistemplate = TRUE WHERE datname = 'postgis';
 
--- bds project DATABASE
-CREATE DATABAS mono template postgis;
+-- I named the database 'mono' as an alias to monographie
+CREATE DATABASE mono template postgis;
 
 -- in order to use postgis extensions, we added the schema postgis to search path
 -- as defined in the template creation
-ALTER DATABAS mono SET search_path='$user', public, postgis;
+ALTER DATABASE mono SET search_path='$user', public, postgis;
+
+GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]
+communes.prj
 
 -- this query helped me in identifying the srid of datum WGS84
 SELECT srid, proj4text FROM spatial_ref_sys WHERE srtext like '%WGS_1984%';
+
+  srid  |  proj4text
+--------+-------------------------------------
+   4326 | +proj=longlat +datum=WGS84 +no_defs
 
 -- these commands are executed outside postgres shell
 shp2pgsql -s 4326 -g geom -I .\regions.shp regions | psql -U elfarissi -d mono
 shp2pgsql -s 4326 -g geom -I .\provinces.shp provinces | psql -U elfarissi -d mono
 shp2pgsql -s 4326 -g geom -I .\communes.shp communes | psql -U elfarissi -d mono
 
--- update statistics
+-- UPDATE statistics
 vacuum analyze regions, provinces, communes;
 
 -- some data cleaning
-delete FROM regions WHERE code_regio is null;
+DELETE FROM regions WHERE code_regio IS NULL;
 
 ALTER TABLE regions RENAME COLUMN "code_regio" TO r_code;
 ALTER TABLE regions RENAME COLUMN "nom_region" TO r_nom;
@@ -40,9 +48,10 @@ DROP COLUMN shape__are,
 DROP COLUMN shape__len;
 
 -- reducing number of bits that is used by some datatypes
+SELECT MAX(LENGTH(r_code)) FROM regions;
 ALTER table regions ALTER column "r_code" type varchar(3);
 --
-update communes set "nom_commun" = upper(nom_commun);
+UPDATE communes SET "nom_commun" = upper(nom_commun);
 
 -- identifying region of interest
 -- first region, then provinces, then communes
@@ -54,25 +63,56 @@ FROM provinces WHERE p_code like '09.%';
 SELECT * INTO r_09
 FROM regions WHERE r_code = '09.';
 
+09.541.01.01. = 09. 541. 01.01.
+
+09.     = Région "Souss-Massa"
+541.    = Province "TAROUDANNT"
+01.01.  = Commune "AIT IAAZA"
+
+
 -- Spatial index creation
 -- 09. is the identifier of the region souss-massa
 CREATE INDEX r_09_geom_idx ON r_09 USING gist(geom);
 CREATE INDEX p_09_geom_idx ON p_09 USING gist(geom);
 CREATE INDEX c_09_geom_idx ON c_09 USING gist(geom);
 --
-update p_09 set menages_18 = case
-when p_nom = 'AGADIR IDA OU TANAN' then 163283
-when p_nom = 'CHTOUKA AIT BAHA' then 99852
-when p_nom = 'INEZGANE AIT MELLOUL' then 142549
-when p_nom = 'TAROUDANNT' then 180895
-when p_nom = 'TATA' then 22675
-when p_nom = 'TIZNIT' then 52671
-end;
-
+ALTER TABLE p_09 ADD COLUMN menages_04 integer;
+ALTER TABLE p_09 ADD COLUMN menages_14 integer;
+ALTER TABLE p_09 ADD COLUMN menages_18 integer;
+--
+UPDATE p_09 SET menages_04 = case
+WHEN p_nom = 'AGADIR IDA OU TANAN' THEN 103395
+WHEN p_nom = 'CHTOUKA AIT BAHA' THEN 61419
+WHEN p_nom = 'INEZGANE AIT MELLOUL' THEN 87786
+WHEN p_nom = 'TAROUDANNT' THEN 138054
+WHEN p_nom = 'TATA' THEN 20349
+WHEN p_nom = 'TIZNIT' THEN 45188
+END;
+--
+UPDATE p_09 SET menages_14 = case
+WHEN p_nom = 'AGADIR IDA OU TANAN' THEN 143752
+WHEN p_nom = 'CHTOUKA AIT BAHA' THEN 88732
+WHEN p_nom = 'INEZGANE AIT MELLOUL' THEN 124340
+WHEN p_nom = 'TAROUDANNT' THEN 171186
+WHEN p_nom = 'TATA' THEN 22359
+WHEN p_nom = 'TIZNIT' THEN 51142
+END;
+--
+UPDATE p_09 SET menages_18 = case
+WHEN p_nom = 'AGADIR IDA OU TANAN' THEN 163283
+WHEN p_nom = 'CHTOUKA AIT BAHA' THEN 99852
+WHEN p_nom = 'INEZGANE AIT MELLOUL' THEN 142549
+WHEN p_nom = 'TAROUDANNT' THEN 180895
+WHEN p_nom = 'TATA' THEN 22675
+WHEN p_nom = 'TIZNIT' THEN 52671
+END;
 -- PK creation
-ALTER TABLE r_09 ADD COLUMN id serial primary key;
-ALTER TABLE p_09 ADD COLUMN id serial primary key;
-ALTER TABLE c_09 ADD COLUMN id serial primary key;
+ALTER TABLE r_09 ADD COLUMN id SERIAL PRIMARY KEY;
+ALTER TABLE p_09 ADD COLUMN id SERIAL PRIMARY KEY;
+ALTER TABLE c_09 ADD COLUMN id SERIAL PRIMARY KEY;
+
+ALTER TABLE p_09
+ALTER COLUMN geom TYPE geometry(MULTIPOLYGON, 26192) USING ST_Transform(ST_SetSRID(geom,4326),26192);
 
 -- Q1
 SELECT p_nom, menages_18 FROM p_09
@@ -82,21 +122,7 @@ limit 1;
    p_nom    | menages_18
 ------------+------------
  TAROUDANNT |     180895
---
-ALTER TABLE p_09
-ALTER COLUMN geom TYPE geometry(MULTIPOLYGON, 26192) USING ST_Transform(ST_SetSRID(geom,4326),26192);
---
-ALTER TABLE p_09
-ADD COLUMN menages_04 integer;
---
-update p_09 set menages_04 = case
-when p_nom = 'AGADIR IDA OU TANAN' then 103395
-when p_nom = 'CHTOUKA AIT BAHA' then 61419
-when p_nom = 'INEZGANE AIT MELLOUL' then 87786
-when p_nom = 'TAROUDANNT' then 138054
-when p_nom = 'TATA' then 20349
-when p_nom = 'TIZNIT' then 45188
-end;
+
 -- Q2
 SELECT sum(menages_04) menages_04, sum(menages_14) menages_14 FROM p_09;
 
