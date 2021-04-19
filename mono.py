@@ -1,14 +1,12 @@
-import psycopg2 as p
+import psycopg2
 
-conn = p.connect(
-    host="localhost",
-    database="mono",
-    user="elfarissi",
-    password="%D2a3#PsT"
-)
+# Connect to mono database
+conn = p.connect("dbname=mono user=elfarissi")
 
+# Open a cursor to perform databse operations
 cur = conn.cursor()
 
+# 
 cur.execute("select p_code, p_nom from p_09")
 
 rows = cur.fetchall()
