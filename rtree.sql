@@ -1,6 +1,7 @@
 SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i  
 WHERE c.oid = i.indexrelid and c.relname = 'c_09_geom_idx' LIMIT 1;
 
+--table rtree has no srid
 CREATE TABLE rtree (geom geometry);
 INSERT INTO rtree
 SELECT replace(a::text, '2DF', '')::box2d::geometry as geom
