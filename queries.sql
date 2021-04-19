@@ -148,6 +148,14 @@ ALTER TABLE r_09 ADD PRIMARY KEY (r_code);
 
 ALTER TABLE p_09 ADD CONSTRAINT r_fk FOREIGN KEY (r_code)
 REFERENCES r_09 (r_code) ON DELETE CASCADE;
+
+-- the query returns the geometries that have a hole in them
+/* In order to run ST_NumInteriorRings() we need to convert the MultiPolygon geometries of c_09
+into simple polygons, so we extract the first polygon from each collection using ST_GeometryN().*/
+select c_code, st_numgeometries(geom), geom
+from c_09 
+where st_numinteriorrings(st_geometryn(geom, 1)) > 0;
+
 -- Q1
 SELECT p_nom, menages_18 FROM p_09
 ORDER BY menages_18 DESC
