@@ -11,36 +11,34 @@ cur.execute("DROP TABLE IF EXISTS gist_indices;")
 cur.execute("CREATE TABLE gist_indices (idx_name varchar, idx_oid varchar);")
 
 # This lists OIDs of spatial indeces
+## WITH gt_name... this lists spatial tables
+## AND c.relname IN (... this finds all spatial indices
 cur.execute("""
-    INSERT INTO gist_indices
-    WITH nom_table AS (
+    INSERT INTO gist_indices 
+    WITH gt_name AS (
         SELECT
-            f_table_name AS nom_table
+            f_table_name AS t_name
         FROM geometry_columns
     )
 
     SELECT
-        relname,
+        c.relname,
         CAST(c.oid AS INTEGER)
     FROM pg_class c, pg_index i
     WHERE c.oid = i.indexrelid
     AND c.relname IN (
-        WITH nom_table AS (
-            SELECT
-                f_table_name AS nom_table
-            FROM geometry_columns
-        )
+        
         SELECT
             relname
-        FROM pg_class, pg_index, nom_table
+        FROM pg_class, pg_index
         WHERE pg_class.oid = pg_index.indexrelid
         AND pg_class.oid IN (
             SELECT
                 indexrelid
             FROM pg_index, pg_class
             WHERE pg_class.relname IN (
-                SELECT nom_table
-                FROM nom_table)
+                SELECT t_name
+                FROM gt_name)
             AND pg_class.oid = pg_index.indrelid
             AND indisunique != 't'
             AND indisprimary != 't' ))
