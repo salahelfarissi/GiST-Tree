@@ -1,11 +1,21 @@
 -- List tables using INFORMATION_SCHEMA
+SELECT f_table_name AS nom_table FROM geometry_columns;
+
+-- List spatial indeces
+WITH nom_table AS (
+        SELECT f_table_name AS nom_table
+        FROM geometry_columns
+    )
 SELECT
-    table_name
-FROM information_schema.tables
-WHERE
-    table_type = 'BASE TABLE'
-    AND table_schema
-    NOT IN ('pg_catalog', 'information_schema');
+    relname
+FROM pg_class, pg_index
+WHERE pg_class.oid = pg_index.indexrelid
+AND pg_class.oid IN (
+    SELECT indexrelid FROM pg_index, pg_class
+    WHERE pg_class.relname IN (SELECT nom_table FROM nom_table)
+    AND pg_class.oid=pg_index.indrelid
+    AND indisunique != 't'
+    AND indisprimary != 't' );
 
 -- Retrieve OID of a spatial indix
 SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i  
@@ -18,4 +28,4 @@ SELECT replace(a::text, '2DF', '')::box2d::geometry as geom
 FROM (SELECT * FROM gist_print('29333') as t(level int, valid bool, a box2df) WHERE level =1) AS subq;
 
 -- Polygon to linestring
-select st_astext(st_exteriorring(geom)) from rtree_v2;
+SELECT st_astext(st_exteriorring(geom)) FROM rtree_v2;
