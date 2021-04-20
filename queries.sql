@@ -156,7 +156,7 @@ select c_code, st_numgeometries(geom), geom
 from c_09 
 where st_numinteriorrings(st_geometryn(geom, 1)) > 0;
 
--- Q1
+-- Q1 : Dans votre région, quelle province contient le nombre le plus important de ménages ?
 SELECT p_nom, menages_18 FROM p_09
 ORDER BY menages_18 DESC
 LIMIT 1;
@@ -165,24 +165,23 @@ LIMIT 1;
 ------------+------------
  TAROUDANNT |     180895
 
--- Q2
+-- Q2 : Dans votre région, quelle est l’évolution de l’effectif des ménages entre 2004 et 2014 ?
 SELECT sum(menages_04) menages_04, sum(menages_14) menages_14 FROM p_09;
 
  menages_04 | menages_14
 ------------+------------
      456191 |     601511
 
--- Q3
+-- Q3 : Dans votre région, quelle est la province qui contient le plus grand nombre de communes rurales ?
 SELECT
-	SubStr(c.c_code,1,7) AS p_id,
+	p.p_code
 	p.p_nom,
- 	count(*) AS cr_nbre,
-	ST_Union(c.geom) AS geom
+ 	count(*) AS cr_nbre
 FROM c_09 c
 JOIN p_09 p
-ON SubStr(c_code,1,7) = p_code
+ON c.c_code = p.p_code
 WHERE c.c_type = 'R'
-GROUP BY p_id, p.p_nom
+GROUP BY 1, 2
 ORDER BY cr_nbre DESC
 LIMIT 1;
 
@@ -190,7 +189,8 @@ LIMIT 1;
 ---------+------------+---------
  09.541. | TAROUDANNT |      81  
 
- -- Q4
+ /* Q4 : Dans votre région, Calculer l’agrégation des géométries des provinces appartenant à votre région
+ et comparez la avec la géométrie de la région issues de fichier des régions. Que remarquez-vous ? */
  SELECT
 	SubStr(p.p_code,1,3) AS r_id,
 	r.r_nom,
@@ -230,7 +230,7 @@ WHERE r.r_code = g.r_id;
 -----------
  t
 
- -- Q5
+ -- Q5 : Dans votre région, Quelle est la province qui a à la fois la plus grande géométrie et le plus grand nombre de communes ?
  SELECT * FROM (
 	SELECT
 	SubStr(c.c_code,1,7) AS p_id,
@@ -251,7 +251,7 @@ ORDER BY c_nbre DESC
 ---------+-------+--------+----------
  09.551. | TATA  |     20 | 26481.79
 
- -- Q6
+ -- Q6 : Dans votre région, Quelle est la répartition de la population selon le genre et le milieu de résidence ?
  select
 	r_nom,
 	pop_m_u,
