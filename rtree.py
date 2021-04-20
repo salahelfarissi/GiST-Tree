@@ -11,46 +11,60 @@ cur.execute("DROP TABLE IF EXISTS gist_indices;")
 cur.execute("CREATE TABLE gist_indices (idx_name varchar, idx_oid varchar);")
 
 # This lists OIDs of spatial indeces
-cur.execute(" INSERT INTO gist_indices WITH nom_table AS ( \
-        SELECT f_table_name AS nom_table \
-        FROM geometry_columns \
-    ) \
-SELECT \
-    relname, \
-    CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i  \
-WHERE c.oid = i.indexrelid and c.relname IN ( \
-    WITH nom_table AS ( \
-        SELECT f_table_name AS nom_table \
-        FROM geometry_columns \
-        ) \
-    SELECT \
-        relname \
-    FROM pg_class, pg_index \
-    WHERE pg_class.oid = pg_index.indexrelid \
-    AND pg_class.oid IN ( \
-        SELECT indexrelid FROM pg_index, pg_class \
-        WHERE pg_class.relname IN (SELECT nom_table FROM nom_table) \
-        AND pg_class.oid=pg_index.indrelid \
-        AND indisunique != 't' \
-        AND indisprimary != 't' ) \
-);")
+cur.execute("""
+    INSERT INTO gist_indices
+    WITH nom_table AS (
+        SELECT
+            f_table_name AS nom_table
+        FROM geometry_columns
+    )
+    SELECT
+        relname,
+        CAST(c.oid AS INTEGER)
+    FROM pg_class c, pg_index i
+    WHERE
+        c.oid = i.indexrelid
+        AND c.relname IN (
+            WITH nom_table AS (
+                SELECT
+                    f_table_name AS nom_table
+                FROM geometry_columns
+            )
+    SELECT
+        relname
+    FROM pg_class, pg_index, nom_table
+    WHERE pg_class.oid = pg_index.indexrelid
+    AND pg_class.oid IN (
+        SELECT
+            indexrelid
+        FROM pg_index, pg_class
+        WHERE pg_class.relname IN (
+            SELECT nom_table
+            FROM nom_table)
+        AND pg_class.oid = pg_index.indrelid
+        AND indisunique != 't'
+        AND indisprimary != 't' )
+);""")
 
 # Obtain data as Python objects
 cur.execute("SELECT * FROM gist_indices;")
-
 rows = cur.fetchall()
 
+print("\nList of GiST indices :\n")
+
 for r in rows:
-    print(r)
+    print(f"Index: {r[0]}, Identifier: {r[1]}")
+
+oid = input("\nWhich geometry index you want to visualize?\n→ ")
 
 cur.execute("DROP TABLE IF EXISTS r_tree;")
 
 cur.execute("""
     SELECT replace(a::text, '2DF', '')::box2d::geometry as geom
     INTO r_tree
-    FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level =1) AS subq
+    FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
     """,
-    ('29334',))
+    (oid,))
 
 conn.commit()
 
