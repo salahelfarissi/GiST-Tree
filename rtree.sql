@@ -1,22 +1,3 @@
--- List tables using INFORMATION_SCHEMA
-SELECT f_table_name AS nom_table FROM geometry_columns;
-
--- List spatial indices
-WITH nom_table AS (
-        SELECT f_table_name AS nom_table
-        FROM geometry_columns
-    )
-SELECT
-    relname
-FROM pg_class, pg_index
-WHERE pg_class.oid = pg_index.indexrelid
-AND pg_class.oid IN (
-    SELECT indexrelid FROM pg_index, pg_class
-    WHERE pg_class.relname IN (SELECT nom_table FROM nom_table)
-    AND pg_class.oid=pg_index.indrelid
-    AND indisunique != 't'
-    AND indisprimary != 't' );
-
 -- Retrieve OIDs of a spatial indices
 WITH nom_table AS (
         SELECT f_table_name AS nom_table
