@@ -1,7 +1,7 @@
 -- List tables using INFORMATION_SCHEMA
 SELECT f_table_name AS nom_table FROM geometry_columns;
 
--- List spatial indeces
+-- List spatial indices
 WITH nom_table AS (
         SELECT f_table_name AS nom_table
         FROM geometry_columns
