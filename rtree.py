@@ -18,33 +18,33 @@ cur.execute("""
             f_table_name AS nom_table
         FROM geometry_columns
     )
+
     SELECT
         relname,
         CAST(c.oid AS INTEGER)
     FROM pg_class c, pg_index i
-    WHERE
-        c.oid = i.indexrelid
-        AND c.relname IN (
-            WITH nom_table AS (
-                SELECT
-                    f_table_name AS nom_table
-                FROM geometry_columns
-            )
-    SELECT
-        relname
-    FROM pg_class, pg_index, nom_table
-    WHERE pg_class.oid = pg_index.indexrelid
-    AND pg_class.oid IN (
+    WHERE c.oid = i.indexrelid
+    AND c.relname IN (
+        WITH nom_table AS (
+            SELECT
+                f_table_name AS nom_table
+            FROM geometry_columns
+        )
         SELECT
-            indexrelid
-        FROM pg_index, pg_class
-        WHERE pg_class.relname IN (
-            SELECT nom_table
-            FROM nom_table)
-        AND pg_class.oid = pg_index.indrelid
-        AND indisunique != 't'
-        AND indisprimary != 't' )
-);""")
+            relname
+        FROM pg_class, pg_index, nom_table
+        WHERE pg_class.oid = pg_index.indexrelid
+        AND pg_class.oid IN (
+            SELECT
+                indexrelid
+            FROM pg_index, pg_class
+            WHERE pg_class.relname IN (
+                SELECT nom_table
+                FROM nom_table)
+            AND pg_class.oid = pg_index.indrelid
+            AND indisunique != 't'
+            AND indisprimary != 't' ))
+""")
 
 # Obtain data as Python objects
 cur.execute("SELECT * FROM gist_indices;")
