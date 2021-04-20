@@ -1,3 +1,11 @@
+SELECT
+    table_name
+FROM information_schema.tables
+WHERE
+    table_type = 'BASE TABLE'
+    AND table_schema
+    NOT IN ('pg_catalog', 'information_schema');
+
 SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i  
 WHERE c.oid = i.indexrelid and c.relname = 'c_09_geom_idx' LIMIT 1;
 
