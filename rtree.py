@@ -57,7 +57,8 @@ for r in rows:
 
 oid = input("\nWhich geometry index you want to visualize?\n→ ")
 
-cur.execute("DROP TABLE IF EXISTS r_tree;")
+cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry(POLYGON));")
+cur.execute("TRUNCATE r_tree RESTART IDENTITY;")
 
 cur.execute("""
     SELECT replace(a::text, '2DF', '')::box2d::geometry as geom
