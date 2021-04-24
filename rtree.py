@@ -6,9 +6,9 @@ conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
 # Open a cursor to perform databse operations
 cur = conn.cursor()
 
-# This creates a new table
-cur.execute("DROP TABLE IF EXISTS gist_indices;")
-cur.execute("CREATE TABLE gist_indices (idx_name varchar, idx_oid varchar);")
+# This creates a table where oid indices will be stored
+cur.execute("CREATE TABLE IF NOT EXISTS gist_indices (idx_name varchar, idx_oid varchar);")
+cur.execute("TRUNCATE gist_indices RESTART IDENTITY;")
 
 # This lists OIDs of spatial indeces
 ## (19) WITH gt_name... this lists spatial tables
