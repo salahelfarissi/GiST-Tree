@@ -57,9 +57,38 @@ print("\nList of GiST indices :\n")
 for r in rows:
     print(f"Index: {r[0]}, Identifier: {r[1]}")
 
-oid = input("\nWhich geometry index you want to visualize?\n→ ")
+oid = int(input("\nWhich geometry index you want to visualize?\n→ "))
 
-cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry);")
+cur.execute("""
+    SELECT 
+        CASE 
+            WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
+            ELSE type
+        END AS type
+    FROM geometry_columns
+    WHERE f_table_name IN (
+	    SELECT tablename FROM gist_indices
+	    JOIN pg_indexes
+        ON idx_name = indexname
+	    WHERE idx_oid::integer = (%s));
+    """,
+    (oid,))
+g_type = cur.fetchone()
+
+cur.execute("""
+    SELECT 
+        srid
+    FROM geometry_columns
+    WHERE f_table_name IN (
+	    SELECT tablename FROM gist_indices
+	    JOIN pg_indexes
+        ON idx_name = indexname
+	    WHERE idx_oid::integer = (%s));
+    """,
+    (oid,))
+g_srid = cur.fetchone()
+
+cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry((%s), (%s)));", (g_type[0], g_srid[0],))
 cur.execute("TRUNCATE r_tree RESTART IDENTITY;")
 
 ##cur.execute("DROP TABLE IF EXISTS r_tree;")
