@@ -74,7 +74,7 @@ cur.execute("""
 conn.commit()
 
 cur.execute("END TRANSACTION;")
-cur.execute("VACUUM VERBOSE r_tree;")
+cur.execute("VACUUM ANALYZE r_tree;")
 cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 cur.close()
