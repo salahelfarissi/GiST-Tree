@@ -57,12 +57,14 @@ for r in rows:
 
 oid = input("\nWhich geometry index you want to visualize?\n→ ")
 
-cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry(POLYGON));")
+cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry);")
 cur.execute("TRUNCATE r_tree RESTART IDENTITY;")
 
+##cur.execute("DROP TABLE IF EXISTS r_tree;")
+
 cur.execute("""
-    SELECT replace(a::text, '2DF', '')::box2d::geometry as geom
-    INTO r_tree
+    INSERT INTO r_tree 
+    SELECT replace(a::text, '2DF', '')::box2d::geometry
     FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
     """,
     (oid,))
