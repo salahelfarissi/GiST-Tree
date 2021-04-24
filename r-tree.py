@@ -52,12 +52,13 @@ cur.execute("""
 cur.execute("SELECT * FROM gist_indices;")
 rows = cur.fetchall()
 
-print("\nList of GiST indices :\n")
+print("\nList of spatial indices\n")
 
 for r in rows:
-    print(f"Index: {r[0]}, Identifier: {r[1]}")
+    print(f"Index: {r[0]}")
+    print(f"OID: {r[1]}")
 
-oid = int(input("\nWhich geometry index you want to visualize?\n→ "))
+oid = int(input("\nWhich spatial index do you want to visualize?\nOID → "))
 
 cur.execute("""
     SELECT 
@@ -99,6 +100,11 @@ cur.execute("""
     FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
     """,
     (g_srid, oid,))
+
+print("\nStatistics\n")
+cur.execute("select gist_stat((%s));;", (oid,))
+stats = cur.fetchone()
+print(stats[0])
 
 conn.commit()
 
