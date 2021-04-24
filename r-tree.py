@@ -6,6 +6,8 @@ conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
 # Open a cursor to perform databse operations
 cur = conn.cursor()
 
+cur.execute("CREATE EXTENSION IF NOT EXISTS gevel_ext;")
+
 # This creates a table where oid indices will be stored
 cur.execute("CREATE TABLE IF NOT EXISTS gist_indices (idx_name varchar, idx_oid varchar);")
 cur.execute("TRUNCATE gist_indices RESTART IDENTITY;")
@@ -69,10 +71,11 @@ cur.execute("""
     """,
     (oid,))
 
-cur.execute("VACUUM ANALYZE r_tree;")
-cur.execute("NOTIFY qgis, 'refresh qgis';")
-
 conn.commit()
+
+cur.execute("END TRANSACTION;")
+cur.execute("VACUUM VERBOSE r_tree;")
+cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 cur.close()
 conn.close()
