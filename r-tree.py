@@ -92,6 +92,7 @@ g_srid = cur.fetchone()
 print("\nStatistics\n")
 cur.execute("SELECT gist_stat((%s));", (oid,))
 stats = cur.fetchone()
+print(stats[0])
 
 l = list(stats)
 l = l[0].splitlines()
