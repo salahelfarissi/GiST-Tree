@@ -88,17 +88,17 @@ cur.execute("""
     (oid,))
 g_srid = cur.fetchone()
 
-cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry((%s), (%s)));", (g_type[0], g_srid[0],))
-cur.execute("TRUNCATE r_tree RESTART IDENTITY;")
+cur.execute("DROP TABLE IF EXISTS r_tree;")
+cur.execute("CREATE TABLE r_tree (geom geometry((%s)));", (g_type[0], ))
 
 ##cur.execute("DROP TABLE IF EXISTS r_tree;")
 
 cur.execute("""
     INSERT INTO r_tree 
-    SELECT replace(a::text, '2DF', '')::box2d::geometry
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, (%s))
     FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
     """,
-    (oid,))
+    (g_srid, oid,))
 
 conn.commit()
 
