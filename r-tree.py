@@ -56,7 +56,7 @@ print("\nList of spatial indices\n")
 
 for r in rows:
     print(f"Index: {r[0]}")
-    print(f"OID: {r[1]}")
+    print(f"↳ OID: {r[1]}")
 
 oid = int(input("\nWhich spatial index do you want to visualize?\nOID → "))
 
@@ -89,6 +89,27 @@ cur.execute("""
     (oid,))
 g_srid = cur.fetchone()
 
+print("\nStatistics\n")
+cur.execute("SELECT gist_stat((%s));", (oid,))
+stats = cur.fetchone()
+
+l = list(stats)
+l = l[0].splitlines()
+
+for e in range(len(l)):
+    l[e] = " ".join(l[e].split())
+
+def extractDigits(lst):
+    res = []
+    for el in lst:
+        sub = el.split(', ')
+        res.append(sub)
+      
+    return(res)
+
+l = extractDigits(l)
+l = [sub.split(': ') for subl in l for sub in subl]
+
 cur.execute("DROP TABLE IF EXISTS r_tree;")
 cur.execute("CREATE TABLE r_tree (geom geometry((%s)));", (g_type[0], ))
 
@@ -100,11 +121,6 @@ cur.execute("""
     FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
     """,
     (g_srid, oid,))
-
-print("\nStatistics\n")
-cur.execute("select gist_stat((%s));;", (oid,))
-stats = cur.fetchone()
-print(stats[0])
 
 conn.commit()
 
