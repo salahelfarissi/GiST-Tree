@@ -174,12 +174,12 @@ SELECT sum(menages_04) menages_04, sum(menages_14) menages_14 FROM p_09;
 
 -- Q3 : Dans votre région, quelle est la province qui contient le plus grand nombre de communes rurales ?
 SELECT
-	p.p_code
+	p.p_code,
 	p.p_nom,
  	count(*) AS cr_nbre
 FROM c_09 c
 JOIN p_09 p
-ON c.c_code = p.p_code
+ON c.p_code = p.p_code
 WHERE c.c_type = 'R'
 GROUP BY 1, 2
 ORDER BY cr_nbre DESC
