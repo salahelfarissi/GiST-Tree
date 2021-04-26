@@ -1,4 +1,5 @@
 import psycopg2
+import csv
 
 # Connect to mono database
 conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
@@ -112,17 +113,38 @@ def extractDigits(lst):
 l = extractDigits(l)
 l = [sub.split(': ') for subl in l for sub in subl]
 
+print(f"Nombre de niveaux → {l[0][1]}\n")
+num_level = int(input("Niveau à visualiser \n↳ "))
+
+cur.execute("select gist_tree((%s), 2);", (oid, ))
+tree = cur.fetchone()
+
+t = list(tree)
+t = t[0].splitlines()
+
+for e in range(len(t)):
+    t[e] = " ".join(t[e].split())
+
+t = extractDigits(t)
+
+t = [sub.split(' ') for subl in t for sub in subl]
+
+# cur.execute("CREATE TABLE tree ")
+
+with open("tree.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerows(t)
+    #cur.copy_from(f, 'tree', sep=',')
+
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
-
-##cur.execute("DROP TABLE IF EXISTS r_tree;")
 
 cur.execute("""
     INSERT INTO r_tree 
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, (%s))
-    FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level=1) AS subq
+    FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level = (%s)) AS subq
     """,
-    (g_srid, oid,))
+    (g_srid, oid, num_level, ))
 
 conn.commit()
 
