@@ -6,11 +6,12 @@ conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
 # Open a cursor to perform databse operations
 cur = conn.cursor()
 
-cur.execute("CREATE EXTENSION IF NOT EXISTS gevel_ext;")
+cur.execute("DROP EXTENSION IF EXISTS gevel_ext;")
+cur.execute("CREATE EXTENSION gevel_ext;")
 
 # This creates a table where oid indices will be stored
-cur.execute("CREATE TABLE IF NOT EXISTS gist_indices (idx_name varchar, idx_oid varchar);")
-cur.execute("TRUNCATE gist_indices RESTART IDENTITY;")
+cur.execute("DROP TABLE IF EXISTS gist_indices;")
+cur.execute("CREATE TABLE gist_indices (idx_name varchar, idx_oid varchar);")
 
 # This lists OIDs of spatial indeces
 ## (19) WITH gt_name... this lists spatial tables
@@ -111,8 +112,8 @@ def extractDigits(lst):
 l = extractDigits(l)
 l = [sub.split(': ') for subl in l for sub in subl]
 
-cur.execute("DROP TABLE IF EXISTS r_tree;")
-cur.execute("CREATE TABLE r_tree (geom geometry((%s)));", (g_type[0], ))
+cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry((%s)));", (g_type[0], ))
+cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 ##cur.execute("DROP TABLE IF EXISTS r_tree;")
 
