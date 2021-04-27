@@ -1,5 +1,7 @@
 import psycopg2
 import csv
+import pandas as pd
+import numpy as np 
 
 # Connect to mono database
 conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
@@ -11,15 +13,15 @@ cur.execute("DROP EXTENSION IF EXISTS gevel_ext;")
 cur.execute("CREATE EXTENSION gevel_ext;")
 
 # This creates a table where oid indices will be stored
-cur.execute("DROP TABLE IF EXISTS gist_indices;")
-cur.execute("CREATE TABLE gist_indices (idx_name varchar, idx_oid varchar);")
+cur.execute("DROP TABLE IF EXISTS indices;")
+cur.execute("CREATE TABLE r_tree.indices (idx_oid serial primary key, idx_name varchar);")
 
 # This lists OIDs of spatial indeces
 ## (19) WITH gt_name... this lists spatial tables
 ### (26) SELECT... this returns OID of spatial indices
 #### (31) AND c.relname IN (... this lists all spatial indices
 cur.execute("""
-    INSERT INTO gist_indices
+    INSERT INTO indices
 
     WITH gt_name AS (
         SELECT
@@ -28,8 +30,8 @@ cur.execute("""
     )
 
     SELECT
-        c.relname,
-        CAST(c.oid AS INTEGER)
+        CAST(c.oid AS INTEGER),
+        c.relname
     FROM pg_class c, pg_index i
     WHERE c.oid = i.indexrelid
     
@@ -51,14 +53,14 @@ cur.execute("""
 """)
 
 # Obtain data as Python objects
-cur.execute("SELECT * FROM gist_indices;")
+cur.execute("SELECT * FROM indices;")
 rows = cur.fetchall()
 
 print("\nList of spatial indices\n")
 
 for r in rows:
-    print(f"Index: {r[0]}")
-    print(f"↳ OID: {r[1]}")
+    print(f"Index: {r[1]}")
+    print(f"↳ OID: {r[0]}")
 
 oid = int(input("\nWhich spatial index do you want to visualize?\nOID → "))
 
@@ -70,7 +72,7 @@ cur.execute("""
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM gist_indices
+	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = (%s));
@@ -83,7 +85,7 @@ cur.execute("""
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM gist_indices
+	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = (%s));
@@ -120,6 +122,7 @@ cur.execute("select gist_tree((%s), 2);", (oid, ))
 tree = cur.fetchone()
 
 t = list(tree)
+
 t = t[0].splitlines()
 
 for e in range(len(t)):
@@ -129,14 +132,20 @@ t = extractDigits(t)
 
 t = [sub.split(' ') for subl in t for sub in subl]
 
-# cur.execute("CREATE TABLE tree ")
-
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
+    #f.write('page_number,tree_level,block_number,num_tuples,free_space(bytes),occupied_space(%)\n')
     writer.writerows(t)
-    #cur.copy_from(f, 'tree', sep=',')
 
-cur.execute("CREATE TABLE IF NOT EXISTS r_tree (geom geometry((%s)));", (g_type[0], ))
+df = pd.read_csv('tree.csv')
+df
+
+#f=pd.read_csv("tree.csv")
+#keep_col = ['day','month','lat','long']
+#new_f = f[keep_col]
+#new_f.to_csv("newFile.csv", index=False)
+
+cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 cur.execute("""
