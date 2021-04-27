@@ -134,6 +134,7 @@ t = [sub.split(' ') for subl in t for sub in subl]
 
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
+    f.write('col1,col2,col3,col4,col5,col6,col7,col8,col9\n')
     writer.writerows(t)
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
