@@ -138,11 +138,11 @@ with open("tree.csv", "w", newline="") as f:
     writer.writerows(t)
 
 df = pd.read_csv('tree.csv')
-df.drop('col8', inplace=True, axis=1)
-df.drop('col9', inplace=True, axis=1)
-df.drop('col2', inplace=True, axis=1)
-df.drop('col4', inplace=True, axis=1)
-df.drop('col6', inplace=True, axis=1)
+df.drop(df.columns[1], axis=1)
+df.drop(df.columns[3], axis=1)
+df.drop(df.columns[5], axis=1)
+df.drop(df.columns[7], axis=1)
+df.drop(df.columns[8], axis=1)
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
