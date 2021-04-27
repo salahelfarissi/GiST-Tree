@@ -1,7 +1,7 @@
 import psycopg2
 import csv
-import pandas as pd
-import numpy as np 
+# import pandas as pd
+# import numpy as np 
 
 # Connect to mono database
 conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
@@ -134,16 +134,7 @@ t = [sub.split(' ') for subl in t for sub in subl]
 
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
-    #f.write('page_number,tree_level,block_number,num_tuples,free_space(bytes),occupied_space(%)\n')
     writer.writerows(t)
-
-df = pd.read_csv('tree.csv')
-df
-
-#f=pd.read_csv("tree.csv")
-#keep_col = ['day','month','lat','long']
-#new_f = f[keep_col]
-#new_f.to_csv("newFile.csv", index=False)
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
