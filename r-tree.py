@@ -1,6 +1,6 @@
 import psycopg2
 import csv
-# import pandas as pd
+import pandas as pd
 # import numpy as np 
 
 # Connect to mono database
@@ -134,8 +134,15 @@ t = [sub.split(' ') for subl in t for sub in subl]
 
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
-    f.write('col1,col2,col3,col4,col5,col6,col7,col8,col9\n')
+    f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
     writer.writerows(t)
+
+df = pd.read_csv('tree.csv')
+df.drop('col8', inplace=True, axis=1)
+df.drop('col9', inplace=True, axis=1)
+df.drop('col2', inplace=True, axis=1)
+df.drop('col4', inplace=True, axis=1)
+df.drop('col6', inplace=True, axis=1)
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
