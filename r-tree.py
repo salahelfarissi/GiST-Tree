@@ -134,7 +134,7 @@ t = [sub.split(' ') for subl in t for sub in subl]
 
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
-    f.write('id,level,col2,blk,col4,tuple,col6,space,col8,col9\n')
+    f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
     writer.writerows(t)
 
 df = pd.read_csv('tree.csv')
