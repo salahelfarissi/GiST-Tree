@@ -144,6 +144,16 @@ df.drop('col6', inplace=True, axis=1)
 df.drop('col8', inplace=True, axis=1)
 df.drop('col9', inplace=True, axis=1)
 
+df[['page','level']] = df.level.str.split("(",expand=True)
+df[['tmp','level']] = df.level.str.split(":",expand=True)
+df[['level','tmp']] = df.level.str.split(")",expand=True)
+df[['free(Bytes)','occupied']] = df.space.str.split("b",expand=True)
+df[['tmp','occupied']] = df.occupied.str.split("(",expand=True)
+df[['occupied(%)','tmp']] = df.occupied.str.split("%",expand=True)
+df.drop('tmp', inplace=True, axis=1)
+df.drop('space', inplace=True, axis=1)
+df.drop('occupied', inplace=True, axis=1)
+
 df.to_csv('tree.csv', index=False)
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
