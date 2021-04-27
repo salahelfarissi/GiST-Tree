@@ -129,6 +129,8 @@ def extractDigits(lst):
       
     return(res)
 
+# this function allows for gist_stat() and gist_tree() output to be used in other line of codes
+# mainly changing data structures for easy access 
 def expandB(lst):
     # converting tuple to list [...]
     tmp = list(lst)
@@ -165,16 +167,21 @@ t = [sub.split(' ') for subl in t for sub in subl]
 
 with open("tree.csv", "w", newline="") as f:
     writer = csv.writer(f)
+    # we added a header row, standard names are meant to be droped afterwards (coli...)
     f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
     writer.writerows(t)
 
+# we started using pandas data structures to clean data
 df = pd.read_csv('tree.csv')
+# the columns droped are for keys that we replaced by issuing a header row
 df.drop('col2', inplace=True, axis=1)
 df.drop('col4', inplace=True, axis=1)
 df.drop('col6', inplace=True, axis=1)
 df.drop('col8', inplace=True, axis=1)
 df.drop('col9', inplace=True, axis=1)
 
+# the following code splits columns to retrieve specific values
+# this process was mandatory since the gist_tree() output was txt consisting of a single string
 df[['page','level']] = df.level.str.split("(",expand=True)
 df[['tmp','level']] = df.level.str.split(":",expand=True)
 df[['level','tmp']] = df.level.str.split(")",expand=True)
@@ -185,11 +192,16 @@ df.drop('tmp', inplace=True, axis=1)
 df.drop('space', inplace=True, axis=1)
 df.drop('occupied', inplace=True, axis=1)
 
+# this changes the order of columns in tree.csv file
 df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
+
+# renaming columns to maintain clarity
 df.rename(columns = {'page':'node', 'level':'level', 'blk':'block', 'tuple':'num_tuples', 'free(Bytes)':'free_space(bytes)', 'occupied(%)':'occupied_space(%)'}, inplace = True)
 
+# writing all changes to the original file
 df.to_csv('tree.csv', index=False)
 
+# creating a table that will hold the tree.csv content in the database
 cur.execute("""
 CREATE TABLE IF NOT EXISTS r_tree.tree (
     node serial PRIMARY KEY,
@@ -203,25 +215,31 @@ CREATE TABLE IF NOT EXISTS r_tree.tree (
 
 cur.execute("TRUNCATE TABLE tree RESTART IDENTITY;")
 
+# copying data from tree.csv which is on our disk to database "mono"
 with open('tree.csv', 'r') as f:
-    # Notice that we don't need the `csv` module.
     next(f) # Skip the header row.
     cur.copy_from(f, 'tree', sep=',')
 
+# creating the table that will hold the bounding boxes of the GiST tree
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 cur.execute("""
     INSERT INTO r_tree 
-    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, (%s))
-    FROM (SELECT * FROM gist_print((%s)) as t(level int, valid bool, a box2df) WHERE level = (%s)) AS subq
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
+    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-    (g_srid, oid, num_level, ))
+    [g_srid, oid, num_level])
 
+# commiting our changes to the database
 conn.commit()
 
+# ending transaction to be able to run VACUUM ANALYZE afterwards
 cur.execute("END TRANSACTION;")
+# VACUUM command serves for updating statistics stored in postgres db
+# that relates to nour r_tree when we rerun the python script for other relations
 cur.execute("VACUUM ANALYZE r_tree;")
+# we notify qgis of the updates to display changes on the fly
 cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 cur.close()
