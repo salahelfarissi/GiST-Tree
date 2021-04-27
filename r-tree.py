@@ -4,7 +4,7 @@ import pandas as pd
 # import numpy as np 
 
 # Connect to mono database
-conn = psycopg2.connect("dbname=mono user=elfarissi password='%D2a3#PsT'")
+conn = psycopg2.connect("host=192.168.1.105 dbname=mono user=elfarissi password='%D2a3#PsT'")
 
 # Open a cursor to perform databse operations
 cur = conn.cursor()
@@ -154,7 +154,28 @@ df.drop('tmp', inplace=True, axis=1)
 df.drop('space', inplace=True, axis=1)
 df.drop('occupied', inplace=True, axis=1)
 
+df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
+df.rename(columns = {'page':'node', 'level':'level', 'blk':'block', 'tuple':'num_tuples', 'free(Bytes)':'free_space(bytes)', 'occupied(%)':'occupied_space(%)'}, inplace = True)
+
 df.to_csv('tree.csv', index=False)
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS r_tree.tree (
+    node serial PRIMARY KEY,
+    level integer,
+    block integer,
+    num_tuples integer,
+    "free_space(bytes)" double precision,
+    "occupied_space(%)" double precision);
+"""
+)
+
+cur.execute("TRUNCATE TABLE tree RESTART IDENTITY;")
+
+with open('tree.csv', 'r') as f:
+    # Notice that we don't need the `csv` module.
+    next(f) # Skip the header row.
+    cur.copy_from(f, 'tree', sep=',')
 
 cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
