@@ -1,25 +1,38 @@
 import psycopg2
-import csv
 import pandas as pd
-# import numpy as np 
+import csv
 
 # Connect to mono database
-conn = psycopg2.connect("host=192.168.1.105 dbname=mono user=elfarissi password='%D2a3#PsT'")
+# I am using WSL2, so the host needs to be adjusted
+conn = psycopg2.connect("""
+    host=192.168.1.105
+    dbname=mono
+    user=elfarissi
+    password='%D2a3#PsT'
+    """)
 
-# Open a cursor to perform databse operations
+# Openning a cursor to perform databse operations
 cur = conn.cursor()
 
+# Adding spatial functions to postgres
+cur.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
+
+# gevel_ext allows GiST index viz
 cur.execute("DROP EXTENSION IF EXISTS gevel_ext;")
 cur.execute("CREATE EXTENSION gevel_ext;")
 
 # This creates a table where oid indices will be stored
 cur.execute("DROP TABLE IF EXISTS indices;")
-cur.execute("CREATE TABLE r_tree.indices (idx_oid serial primary key, idx_name varchar);")
+cur.execute("""CREATE TABLE r_tree.indices (
+    idx_oid serial primary key, 
+    idx_name varchar);
+    """)
 
-# This lists OIDs of spatial indeces
-## (19) WITH gt_name... this lists spatial tables
-### (26) SELECT... this returns OID of spatial indices
-#### (31) AND c.relname IN (... this lists all spatial indices
+# This lists OIDs of spatial indices
+## (39) WITH gt_name... this lists spatial tables
+### (42) geometry_columns is a view that comes with postgis, it holds spatial relations attributes (geometry type, srid, etc)
+#### (45) SELECT... this returns OID (Object Identifier) of spatial indices
+##### (51) AND c.relname IN (... this lists all spatial indices
 cur.execute("""
     INSERT INTO indices
 
@@ -56,14 +69,18 @@ cur.execute("""
 cur.execute("SELECT * FROM indices;")
 rows = cur.fetchall()
 
-print("\nList of spatial indices\n")
+print("\nList of GiST indices\n")
 
+# print indices with their object identifiers
 for r in rows:
     print(f"Index: {r[1]}")
     print(f"↳ OID: {r[0]}")
 
+# allowing the user to choose which index to visualize
 oid = int(input("\nWhich spatial index do you want to visualize?\nOID → "))
 
+# retrieving the geometry type of the table that is associated with index that the user chose
+# Multi to Poly is a constraint due to the geomerty type of the bounding boxes of the index
 cur.execute("""
     SELECT 
         CASE 
@@ -75,11 +92,12 @@ cur.execute("""
 	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = (%s));
+	    WHERE idx_oid::integer = %s);
     """,
-    (oid,))
+    [oid])
 g_type = cur.fetchone()
 
+# retrieving the srid of the table that is associated with index that the user chose
 cur.execute("""
     SELECT 
         srid
@@ -88,22 +106,21 @@ cur.execute("""
 	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = (%s));
+	    WHERE idx_oid::integer = %s);
     """,
-    (oid,))
+    [oid])
 g_srid = cur.fetchone()
 
+# gist_stat() comes with the gevel extension
+# gist_stat() shows some statistics about the GiST tree
 print("\nStatistics\n")
-cur.execute("SELECT gist_stat((%s));", (oid,))
+cur.execute("SELECT gist_stat(%s);", [oid])
 stats = cur.fetchone()
+
+# stats var is a tuple with one element (..., )
 print(stats[0])
 
-l = list(stats)
-l = l[0].splitlines()
-
-for e in range(len(l)):
-    l[e] = " ".join(l[e].split())
-
+# this function creates sublists
 def extractDigits(lst):
     res = []
     for el in lst:
@@ -112,23 +129,37 @@ def extractDigits(lst):
       
     return(res)
 
-l = extractDigits(l)
+def expandB(lst):
+    # converting tuple to list [...]
+    tmp = list(lst)
+    # l is a list that contains one element
+    # we splited the string on new line marks (\n)
+    tmp = tmp[0].splitlines()
+    # l is now a list with 9 elements (len(l) = 9)
+    # this loop removes duplicate spaces in each element
+    for e in range(len(tmp)):
+        tmp[e] = " ".join(tmp[e].split())
+    # this function puts each element in its own list
+    # the result is a list of lists
+    tmp = extractDigits(tmp)
+
+    return(tmp)
+
+l = expandB(stats)
+
+# this splits the sublists to retrieve the values afterwards
 l = [sub.split(': ') for subl in l for sub in subl]
 
+# this asks the user about the level of the tree to visualize
 print(f"Nombre de niveaux → {l[0][1]}\n")
 num_level = int(input("Niveau à visualiser \n↳ "))
 
-cur.execute("select gist_tree((%s), 2);", (oid, ))
+# gist_tree() comes with the gevel extension
+# gist_tree() shows tree construction
+cur.execute("SELECT gist_tree(%s, 2);", [oid])
 tree = cur.fetchone()
 
-t = list(tree)
-
-t = t[0].splitlines()
-
-for e in range(len(t)):
-    t[e] = " ".join(t[e].split())
-
-t = extractDigits(t)
+t = expandB(tree)
 
 t = [sub.split(' ') for subl in t for sub in subl]
 
