@@ -33,8 +33,7 @@ cur.execute("""CREATE TABLE cascade.indices (
     idx_name varchar);
     """)
 
-cur.execute("""
-    INSERT INTO cascade.indices
+cur.execute("""INSERT INTO cascade.indices
 
     WITH gt_name AS (
         SELECT
@@ -65,7 +64,7 @@ cur.execute("""
             AND indisprimary != 't' ))
 """)
 
-# Obtain data as Python objects
+# Obtain OID of com_cas index
 cur.execute("SELECT * FROM cascade.indices WHERE idx_name = 'com_cas_geom_idx';")
 rows = cur.fetchone()
 oid = rows[0]
@@ -106,19 +105,22 @@ g_srid = cur.fetchone()
 #     WHERE c_code = '12.066.01.03.'
 #     """)
 
-cur.execute("""
-    INSERT INTO com_cas
-    select 
-        c.c_code, 
-        c.geom
-    from communes c 
-    where c.c_nom != 'LAGOUIRA'
-    order by c.geom <-> (
-        select geom from communes
-        where c_nom = 'LAGOUIRA')
-    limit 100
-    offset 300;
-    """)
+cur.execute("SELECT count(*) FROM communes;")
+count = cur.fetchone()
+
+for i in range (count[0]):
+    cur.execute("""
+        INSERT INTO com_cas
+        select 
+            c.c_code, 
+            c.geom
+        from communes c
+        order by c.geom <-> (
+            select geom from communes
+            where c_nom = 'LAGOUIRA')
+        limit 100
+        offset 300;
+        """)
     
 # gist_stat() comes with the gevel extension
 # gist_stat() shows some statistics about the GiST tree
