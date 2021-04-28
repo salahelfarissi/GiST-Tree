@@ -11,7 +11,6 @@ conn = psycopg2.connect("""
 
 cur = conn.cursor()
 
-# KNN
 cur.execute("SELECT count(*) FROM communes;")
 count = cur.fetchone()
 
@@ -29,7 +28,7 @@ cur.execute("""
 
 # This creates a table where oid indices will be stored
 cur.execute("DROP TABLE IF EXISTS indices;")
-cur.execute("""CREATE TABLE r_tree.indices (
+cur.execute("""CREATE TABLE cascade.indices (
     idx_oid serial primary key, 
     idx_name varchar);
     """)
@@ -69,7 +68,6 @@ cur.execute("""
 # Obtain data as Python objects
 cur.execute("SELECT * FROM indices WHERE idx_name = 'com_cas_geom_idx';")
 rows = cur.fetchone()
-
 oid = rows[0]
 
 cur.execute("""
@@ -101,8 +99,7 @@ cur.execute("""
     [oid])
 g_srid = cur.fetchone()
 
-cur.execute("TRUNCATE TABLE com_cas RESTART IDENTITY;")
-
+# cur.execute("TRUNCATE TABLE com_cas RESTART IDENTITY;")
 cur.execute("""
     INSERT INTO com_cas
     SELECT c_code, geom
@@ -110,21 +107,18 @@ cur.execute("""
     WHERE c_code = '12.066.01.03.'
     """)
 
-for i in range (count):
-
-    cur.execute("""
-        INSERT INTO com_cas
-        select 
-            c.c_code, 
-            c.geom
-        from communes c 
-        where c.c_nom != 'LAGOUIRA'
-        order by c.geom <-> (
-            select geom from communes
-            where c_nom = 'LAGOUIRA')
-        limit 1
-        offset i;
-        """)
+# cur.execute("""
+#     INSERT INTO com_cas
+#     select 
+#         c.c_code, 
+#         c.geom
+#     from communes c 
+#     where c.c_nom != 'LAGOUIRA'
+#     order by c.geom <-> (
+#         select geom from communes
+#         where c_nom = 'LAGOUIRA')
+#     limit 1;
+#     """)
     
 # gist_stat() comes with the gevel extension
 # gist_stat() shows some statistics about the GiST tree
