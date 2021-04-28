@@ -221,7 +221,11 @@ with open('tree.csv', 'r') as f:
     cur.copy_from(f, 'tree', sep=',')
 
 # creating the table that will hold the bounding boxes of the GiST tree
-cur.execute("CREATE TABLE IF NOT EXISTS r_tree.r_tree (geom geometry((%s)));", (g_type[0], ))
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS r_tree.r_tree (
+        geom geometry(%s));
+    """,
+    [g_type[0]])
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 cur.execute("""
@@ -229,7 +233,7 @@ cur.execute("""
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-    [g_srid, oid, num_level])
+    [g_srid[0], oid, num_level])
 
 # commiting our changes to the database
 conn.commit()
