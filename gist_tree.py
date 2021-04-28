@@ -118,124 +118,124 @@ for i in range (count[0]):
         order by c.geom <-> (
             select geom from communes
             where c_nom = 'LAGOUIRA')
-        limit 100
-        offset 300;
-        """)
+        limit 1
+        offset %s;
+        """,
+        [i])
     
-# gist_stat() comes with the gevel extension
-# gist_stat() shows some statistics about the GiST tree
-print("\nStatistics\n")
-cur.execute("SELECT gist_stat(%s);", [oid])
-stats = cur.fetchone()
+    # gist_stat() comes with the gevel extension
+    # gist_stat() shows some statistics about the GiST tree
+    print("\nStatistics\n")
+    cur.execute("SELECT gist_stat(%s);", [oid])
+    stats = cur.fetchone()
 
-# stats var is a tuple with one element (..., )
-print(stats[0])
+    # stats var is a tuple with one element (..., )
+    print(stats[0])
 
-# this function creates sublists
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
-      
-    return(res)
+    # this function creates sublists
+    def extractDigits(lst):
+        res = []
+        for el in lst:
+            sub = el.split(', ')
+            res.append(sub)
+        
+        return(res)
 
-# this function allows for gist_stat() and gist_tree() output to be used in other line of codes
-# mainly changing data structures for easy access 
-def expandB(lst):
-    # converting tuple to list [...]
-    tmp = list(lst)
-    # l is a list that contains one element
-    # we splited the string on new line marks (\n)
-    tmp = tmp[0].splitlines()
-    # l is now a list with 9 elements (len(l) = 9)
-    # this loop removes duplicate spaces in each element
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    # this function puts each element in its own list
-    # the result is a list of lists
-    tmp = extractDigits(tmp)
+    # this function allows for gist_stat() and gist_tree() output to be used in other line of codes
+    # mainly changing data structures for easy access 
+    def expandB(lst):
+        # converting tuple to list [...]
+        tmp = list(lst)
+        # l is a list that contains one element
+        # we splited the string on new line marks (\n)
+        tmp = tmp[0].splitlines()
+        # l is now a list with 9 elements (len(l) = 9)
+        # this loop removes duplicate spaces in each element
+        for e in range(len(tmp)):
+            tmp[e] = " ".join(tmp[e].split())
+        # this function puts each element in its own list
+        # the result is a list of lists
+        tmp = extractDigits(tmp)
 
-    return(tmp)
+        return(tmp)
 
-l = expandB(stats)
+    l = expandB(stats)
 
-# this splits the sublists to retrieve the values afterwards
-l = [sub.split(': ') for subl in l for sub in subl]
+    # this splits the sublists to retrieve the values afterwards
+    l = [sub.split(': ') for subl in l for sub in subl]
 
-# this asks the user about the level of the tree to visualize
-print(f"Nombre de niveaux → {l[0][1]}\n")
-num_level = int(input("Niveau à visualiser \n↳ "))
+    # this asks the user about the level of the tree to visualize
+    num_level = oid
 
-# gist_tree() comes with the gevel extension
-# gist_tree() shows tree construction
-cur.execute("SELECT gist_tree(%s);", [oid])
-tree = cur.fetchone()
+    # gist_tree() comes with the gevel extension
+    # gist_tree() shows tree construction
+    cur.execute("SELECT gist_tree(%s);", [oid])
+    tree = cur.fetchone()
 
-t = expandB(tree)
+    t = expandB(tree)
 
-t = [sub.split(' ') for subl in t for sub in subl]
+    t = [sub.split(' ') for subl in t for sub in subl]
 
-with open("tree.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    # we added a header row, standard names are meant to be droped afterwards (coli...)
-    f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
-    writer.writerows(t)
+    # with open("tree.csv", "w", newline="") as f:
+    #     writer = csv.writer(f)
+    #     # we added a header row, standard names are meant to be droped afterwards (coli...)
+    #     f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
+    #     writer.writerows(t)
 
-# we started using pandas data structures to clean data
-df = pd.read_csv('tree.csv')
-# the columns droped are for keys that we replaced by issuing a header row
-df.drop('col2', inplace=True, axis=1)
-df.drop('col4', inplace=True, axis=1)
-df.drop('col6', inplace=True, axis=1)
-df.drop('col8', inplace=True, axis=1)
-df.drop('col9', inplace=True, axis=1)
+    # # we started using pandas data structures to clean data
+    # df = pd.read_csv('tree.csv')
+    # # the columns droped are for keys that we replaced by issuing a header row
+    # df.drop('col2', inplace=True, axis=1)
+    # df.drop('col4', inplace=True, axis=1)
+    # df.drop('col6', inplace=True, axis=1)
+    # df.drop('col8', inplace=True, axis=1)
+    # df.drop('col9', inplace=True, axis=1)
 
-# the following code splits columns to retrieve specific values
-# this process was mandatory since the gist_tree() output was txt consisting of a single string
-df[['page','level']] = df.level.str.split("(",expand=True)
-df[['tmp','level']] = df.level.str.split(":",expand=True)
-df[['level','tmp']] = df.level.str.split(")",expand=True)
-df[['free(Bytes)','occupied']] = df.space.str.split("b",expand=True)
-df[['tmp','occupied']] = df.occupied.str.split("(",expand=True)
-df[['occupied(%)','tmp']] = df.occupied.str.split("%",expand=True)
-df.drop('tmp', inplace=True, axis=1)
-df.drop('space', inplace=True, axis=1)
-df.drop('occupied', inplace=True, axis=1)
+    # # the following code splits columns to retrieve specific values
+    # # this process was mandatory since the gist_tree() output was txt consisting of a single string
+    # df[['page','level']] = df.level.str.split("(",expand=True)
+    # df[['tmp','level']] = df.level.str.split(":",expand=True)
+    # df[['level','tmp']] = df.level.str.split(")",expand=True)
+    # df[['free(Bytes)','occupied']] = df.space.str.split("b",expand=True)
+    # df[['tmp','occupied']] = df.occupied.str.split("(",expand=True)
+    # df[['occupied(%)','tmp']] = df.occupied.str.split("%",expand=True)
+    # df.drop('tmp', inplace=True, axis=1)
+    # df.drop('space', inplace=True, axis=1)
+    # df.drop('occupied', inplace=True, axis=1)
 
-# this changes the order of columns in tree.csv file
-df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
+    # # this changes the order of columns in tree.csv file
+    # df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
 
-# renaming columns to maintain clarity
-df.rename(columns = {'page':'node', 'level':'level', 'blk':'block', 'tuple':'num_tuples', 'free(Bytes)':'free_space(bytes)', 'occupied(%)':'occupied_space(%)'}, inplace = True)
+    # # renaming columns to maintain clarity
+    # df.rename(columns = {'page':'node', 'level':'level', 'blk':'block', 'tuple':'num_tuples', 'free(Bytes)':'free_space(bytes)', 'occupied(%)':'occupied_space(%)'}, inplace = True)
 
-# writing all changes to the original file
-df.to_csv('tree.csv', index=False)
+    # # writing all changes to the original file
+    # df.to_csv('tree.csv', index=False)
 
-# creating a table that will hold the tree.csv content in the database
-cur.execute("""
-CREATE TABLE IF NOT EXISTS cascade.tree (
-    node serial PRIMARY KEY,
-    level integer,
-    block integer,
-    num_tuples integer,
-    "free_space(bytes)" double precision,
-    "occupied_space(%)" double precision);
-"""
-)
+    # # creating a table that will hold the tree.csv content in the database
+    # cur.execute("""
+    # CREATE TABLE IF NOT EXISTS cascade.tree (
+    #     node serial PRIMARY KEY,
+    #     level integer,
+    #     block integer,
+    #     num_tuples integer,
+    #     "free_space(bytes)" double precision,
+    #     "occupied_space(%)" double precision);
+    # """
+    # )
 
-cur.execute("TRUNCATE TABLE cascade.tree RESTART IDENTITY;")
+    # cur.execute("TRUNCATE TABLE cascade.tree RESTART IDENTITY;")
 
-# copying data from tree.csv which is on our disk to database "mono"
-with open('tree.csv', 'r') as f:
-    next(f) # Skip the header row.
-    cur.copy_from(f, 'cascade.tree', sep=',')
+    # # copying data from tree.csv which is on our disk to database "mono"
+    # with open('tree.csv', 'r') as f:
+    #     next(f) # Skip the header row.
+    #     cur.copy_from(f, 'cascade.tree', sep=',')
 
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS cascade.gist_tree (
-        geom geometry(%s));
-    """,
-    [g_type[0]])
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS cascade.gist_tree (
+            geom geometry(%s));
+        """,
+        [g_type[0]])
 
 cur.execute("TRUNCATE TABLE gist_tree RESTART IDENTITY;")
 
