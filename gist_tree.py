@@ -2,24 +2,24 @@ import psycopg2
 import pandas as pd
 import csv
 
+# Connect to db
 conn = psycopg2.connect("""
     host=192.168.1.105
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
     """)
-
+# Cursor
 cur = conn.cursor()
 
-cur.execute("SELECT count(*) FROM communes;")
-count = cur.fetchone()
-
+# Create com_cas table
 cur.execute("""
     CREATE TABLE IF NOT EXISTS cascade.com_cas (
         c_code varchar(32),
         geom geometry(MultiPolygon, 4326));
     """)
 
+# Create index
 cur.execute("""
     CREATE INDEX IF NOT EXISTS com_cas_geom_idx
 	ON cascade.com_cas USING gist
@@ -27,14 +27,14 @@ cur.execute("""
     """)
 
 # This creates a table where oid indices will be stored
-cur.execute("DROP TABLE IF EXISTS indices;")
+cur.execute("DROP TABLE IF EXISTS cascade.indices;")
 cur.execute("""CREATE TABLE cascade.indices (
     idx_oid serial primary key, 
     idx_name varchar);
     """)
 
 cur.execute("""
-    INSERT INTO indices
+    INSERT INTO cascade.indices
 
     WITH gt_name AS (
         SELECT
@@ -66,7 +66,7 @@ cur.execute("""
 """)
 
 # Obtain data as Python objects
-cur.execute("SELECT * FROM indices WHERE idx_name = 'com_cas_geom_idx';")
+cur.execute("SELECT * FROM cascade.indices WHERE idx_name = 'com_cas_geom_idx';")
 rows = cur.fetchone()
 oid = rows[0]
 
@@ -99,26 +99,26 @@ cur.execute("""
     [oid])
 g_srid = cur.fetchone()
 
-# cur.execute("TRUNCATE TABLE com_cas RESTART IDENTITY;")
+# cur.execute("""
+#     INSERT INTO cascade.com_cas
+#     SELECT c_code, geom
+#     FROM communes
+#     WHERE c_code = '12.066.01.03.'
+#     """)
+
 cur.execute("""
     INSERT INTO com_cas
-    SELECT c_code, geom
-    FROM communes
-    WHERE c_code = '12.066.01.03.'
+    select 
+        c.c_code, 
+        c.geom
+    from communes c 
+    where c.c_nom != 'LAGOUIRA'
+    order by c.geom <-> (
+        select geom from communes
+        where c_nom = 'LAGOUIRA')
+    limit 100
+    offset 300;
     """)
-
-# cur.execute("""
-#     INSERT INTO com_cas
-#     select 
-#         c.c_code, 
-#         c.geom
-#     from communes c 
-#     where c.c_nom != 'LAGOUIRA'
-#     order by c.geom <-> (
-#         select geom from communes
-#         where c_nom = 'LAGOUIRA')
-#     limit 1;
-#     """)
     
 # gist_stat() comes with the gevel extension
 # gist_stat() shows some statistics about the GiST tree
@@ -238,7 +238,7 @@ cur.execute("""
 cur.execute("TRUNCATE TABLE gist_tree RESTART IDENTITY;")
 
 cur.execute("""
-    INSERT INTO gist_tree 
+    INSERT INTO cascade.gist_tree 
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
@@ -251,7 +251,7 @@ conn.commit()
 cur.execute("END TRANSACTION;")
 # VACUUM command serves for updating statistics stored in postgres db
 # that relates to nour r_tree when we rerun the python script for other relations
-cur.execute("VACUUM ANALYZE gist_tree;")
+cur.execute("VACUUM ANALYZE cascade.gist_tree;")
 # we notify qgis of the updates to display changes on the fly
 cur.execute("NOTIFY qgis, 'refresh qgis';")
 
