@@ -1,2 +1,4 @@
 node,level,block,num_tuples,free_space(bytes),occupied_space(%)
-0,0,0,1,8120,0.49
+0,0,0,2,8092,0.83
+1,1,1,206,2380,70.83
+2,1,2,195,2688,67.06
