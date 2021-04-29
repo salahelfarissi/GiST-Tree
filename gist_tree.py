@@ -116,7 +116,7 @@ g_srid = cur.fetchone()
 num_level = 1
 
 cur.execute("""
-    DROP TABLE cascade.r_tree;
+    DROP TABLE IF EXISTS cascade.r_tree;
     """)
 
 cur.execute("SELECT count(*) FROM communes;")
