@@ -5,12 +5,14 @@ CREATE SCHEMA postgis;
 CREATE EXTENSION postgis SCHEMA postgis;
 UPDATE pg_DATABASE SET datistemplate = TRUE WHERE datname = 'postgis';
 
+CREATE SCHEMA gevel;
+CREATE EXTENSION gevel_ext SCHEMA gevel;
+-- in order to use postgis & gevel_ext, we added the schema postgis to search path
+-- as defined in the template creation
+alter database mono set search_path = "$user", public, postgis, souss, r_tree, maroc, cascade, gevel;
+
 -- I named the database 'mono' as an alias to monographie
 CREATE DATABASE mono template postgis;
-
--- in order to use postgis extensions, we added the schema postgis to search path
--- as defined in the template creation
-ALTER DATABASE mono SET search_path='$user', public, postgis;
 
 GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]
 communes.prj
