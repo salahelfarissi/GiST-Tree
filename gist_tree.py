@@ -85,7 +85,7 @@ cur.execute("""
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
@@ -98,7 +98,7 @@ cur.execute("""
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
