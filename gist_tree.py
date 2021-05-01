@@ -89,7 +89,6 @@ cur.execute("""SELECT
     """,
     [oid])
 g_type = cur.fetchone()
-print(g_type)
 # srid of com_cas table
 cur.execute("""SELECT 
         srid
@@ -121,13 +120,13 @@ count = cur.fetchone()
 
 for i in range (count[0]):
     cur.execute("""
-        INSERT INTO com_cas
+        INSERT INTO cascade.com_cas
         select 
             c.c_code, 
             c.geom
-        from communes c
+        from maroc.communes c
         order by c.geom <-> (
-            select geom from communes
+            select geom from maroc.communes
             where c_nom = 'Lagouira')
         limit 1
         offset %s;
