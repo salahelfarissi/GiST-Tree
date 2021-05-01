@@ -4,7 +4,7 @@ import csv
 
 # Connect to db
 conn = psycopg2.connect("""
-    host=192.168.1.105
+    host=192.168.1.104
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
