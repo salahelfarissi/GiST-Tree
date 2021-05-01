@@ -103,7 +103,6 @@ cur.execute("""SELECT
     [oid])
 g_srid = cur.fetchone()
 
-<<<<<<< HEAD
 # cur.execute("""
 #     INSERT INTO cascade.com_cas
 #     SELECT c_code, geom
@@ -118,9 +117,6 @@ cur.execute("""
     """)
 
 cur.execute("SELECT count(*) FROM communes;")
-=======
-cur.execute("SELECT count(*) FROM maroc.communes;")
->>>>>>> if_statement
 count = cur.fetchone()
 
 for i in range (count[0]):
