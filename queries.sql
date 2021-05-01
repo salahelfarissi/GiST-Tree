@@ -168,6 +168,21 @@ WHERE ST_Intersects(a.geom, b.geom)
 AND ST_Relate(a.geom, b.geom, '2********')  
 AND a.c_code != b.c_code;
 
+UPDATE communes
+SET c_nom = UPPER(c_nom);
+UPDATE communes
+SET c_nom = INITCAP(c_nom);
+---
+UPDATE provinces
+SET p_nom = UPPER(p_nom);
+UPDATE provinces
+SET p_nom = INITCAP(p_nom);
+---
+UPDATE regions
+SET r_nom = UPPER(r_nom);
+UPDATE re
+SET r_nom = INITCAP(r_nom);
+
 -- Q1 : Dans votre région, quelle province contient le nombre le plus important de ménages ?
 SELECT p_nom, menages_18 FROM p_09
 ORDER BY menages_18 DESC
