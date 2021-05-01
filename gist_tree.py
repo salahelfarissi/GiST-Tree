@@ -1,13 +1,8 @@
 import psycopg2
 
-<<<<<<< HEAD
 # Connect to db
 conn = psycopg2.connect("""
     host=192.168.1.104
-=======
-# Connect to db from wsl2
-conn = psycopg2.connect("""host=192.168.1.104
->>>>>>> if_statement
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
