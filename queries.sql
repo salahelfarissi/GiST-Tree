@@ -1,3 +1,5 @@
+pg_dump -h 192.168.1.105 -n souss -n r_tree -f mono.backup -F d mono
+
 -- I created a postgis database to be use as a template
 
 CREATE DATABASE postgis;
@@ -157,6 +159,14 @@ into simple polygons, so we extract the first polygon from each collection using
 select c_code, st_numgeometries(geom), geom
 from c_09 
 where st_numinteriorrings(st_geometryn(geom, 1)) > 0;
+
+-- Data quality
+SELECT a.c_code, b.c_code, 
+st_geomfromtext(st_astext(st_intersection(a.geom, b.geom)), 26192) AS geom 
+FROM c_09 a, c_09 b  
+WHERE ST_Intersects(a.geom, b.geom)  
+AND ST_Relate(a.geom, b.geom, '2********')  
+AND a.c_code != b.c_code;
 
 -- Q1 : Dans votre région, quelle province contient le nombre le plus important de ménages ?
 SELECT p_nom, menages_18 FROM p_09
