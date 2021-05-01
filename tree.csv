@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node,level,block,num_tuples,free_space(bytes),occupied_space(%)
 0,0,0,14,7532,7.70
 1,1,4,47,6080,25.49
@@ -14,3 +15,9 @@ node,level,block,num_tuples,free_space(bytes),occupied_space(%)
 12,1,13,96,3924,51.91
 13,1,6,100,3748,54.07
 14,1,14,89,4232,48.14
+=======
+node,level,block,num_tuples,free_space(bytes),occupied_space(%)
+0,0,0,2,8092,0.83
+1,1,1,206,2380,70.83
+2,1,2,195,2688,67.06
+>>>>>>> if_statement
