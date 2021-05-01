@@ -1,7 +1,7 @@
 import psycopg2
 
 # Connect to db from wsl2
-conn = psycopg2.connect("""host=192.168.1.105
+conn = psycopg2.connect("""host=192.168.1.104
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
@@ -70,6 +70,7 @@ cur.execute("""INSERT INTO cascade.indices
 # Obtain OID of com_cas index
 cur.execute("SELECT * FROM cascade.indices WHERE idx_name = 'com_cas_geom_idx';")
 rows = cur.fetchone()
+rows = list(rows)
 oid = rows[0]
 
 # geometry type of com_cas table
@@ -80,20 +81,20 @@ cur.execute("""SELECT
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
     [oid])
 g_type = cur.fetchone()
-
+print(g_type)
 # srid of com_cas table
 cur.execute("""SELECT 
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
@@ -113,7 +114,7 @@ for i in range (count[0]):
         from communes c
         order by c.geom <-> (
             select geom from communes
-            where c_nom = 'LAGOUIRA')
+            where c_nom = 'Lagouira')
         limit 1
         offset %s;
         """,
@@ -152,92 +153,47 @@ for i in range (count[0]):
 
     l = [sub.split(': ') for subl in l for sub in subl]
 
-    num_levels = l[0][1]
-    print(num_levels)
-    if num_levels == 1: 
-        table_name = 'cascade.tree_l1_'+str(i)
-        cur.execute("""DROP TABLE IF EXISTS %s;
-            """ % table_name)
-        cur.execute("""CREATE TABLE %s (
-                geom geometry(%%s, %%s));
-            """ % table_name,
-            [g_type[0], g_srid[0]])
+    table_name = 'cascade.tree_'+str(i)
+    cur.execute("""DROP TABLE IF EXISTS %s;
+        """ % table_name)
+    cur.execute("""CREATE TABLE %s (geom geometry(%%s, %%s))
+        """ %table_name,
+        [g_type[0], g_srid[0]])
 
-        cur.execute("""INSERT INTO %s 
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %%s)
-        FROM (SELECT * FROM gist_print(%%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
-        """ % table_name,
-        [g_srid[0], oid])
+    cur.execute("""INSERT INTO %s 
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %%s)
+    FROM (SELECT * FROM gist_print(%%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
+    """ % table_name,
+    [g_srid[0], oid])
 
-        cur.execute("DROP TABLE IF EXISTS cascade.r_tree_l1;")
-        cur.execute("""CREATE TABLE cascade.r_tree_l1 (
-                geom geometry(%s, %s));
-            """,
-            [g_type[0], g_srid[0]])
-
-        cur.execute("""
-        INSERT INTO cascade.r_tree_l1 
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
+    cur.execute("DROP TABLE IF EXISTS cascade.r_tree;")
+    cur.execute("""CREATE TABLE cascade.r_tree (
+            geom geometry(%s, %s));
         """,
-        [g_srid[0], oid])
+        [g_type[0], g_srid[0]])
 
-        # commiting our changes to the database
-        conn.commit()
+    cur.execute("""
+    INSERT INTO cascade.r_tree 
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
+    """,
+    [g_srid[0], oid])
 
-        # ending transaction to be able to run VACUUM ANALYZE afterwards
-        cur.execute("END TRANSACTION;")
-        # VACUUM command serves for updating statistics stored in postgres db
-        # that relates to nour r_tree when we rerun the python script for other relations
-        cur.execute("VACUUM ANALYZE %s;" % table_name)
-        cur.execute("VACUUM ANALYZE cascade.r_tree_l1;")
-        # we notify qgis of the updates to display changes on the fly
-        cur.execute("NOTIFY qgis, 'refresh qgis';")
-
-
-    elif num_levels == 2:
-        table_name = 'cascade.tree_l2_'+str(i)
-        cur.execute("""DROP TABLE IF EXISTS %s;
-            """ % table_name)
-        cur.execute("""CREATE TABLE %s (
-                geom geometry(%%s, %%s));
-            """ % table_name,
-            [g_type[0], g_srid[0]])
-
-        cur.execute("""INSERT INTO %s 
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %%s)
-        FROM (SELECT * FROM gist_print(%%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
-        """ % table_name,
-        [g_srid[0], oid])
-
-        cur.execute("DROP TABLE IF EXISTS cascade.r_tree_l2;")
-        cur.execute("""CREATE TABLE cascade.r_tree_l2 (
-                geom geometry(%s, %s));
-            """,
-            [g_type[0], g_srid[0]])
-
-        cur.execute("""
-        INSERT INTO cascade.r_tree_l2 
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
-        """,
-        [g_srid[0], oid])
-
-        # commiting our changes to the database
-        conn.commit()
-
-        # ending transaction to be able to run VACUUM ANALYZE afterwards
-        cur.execute("END TRANSACTION;")
-        # VACUUM command serves for updating statistics stored in postgres db
-        # that relates to nour r_tree when we rerun the python script for other relations
-        cur.execute("VACUUM ANALYZE %s;" % table_name)
-        cur.execute("VACUUM ANALYZE cascade.r_tree_l2;")
-        # we notify qgis of the updates to display changes on the fly
-        cur.execute("NOTIFY qgis, 'refresh qgis';")
-
+    # commiting our changes to the database
     conn.commit()
+
+    # ending transaction to be able to run VACUUM ANALYZE afterwards
     cur.execute("END TRANSACTION;")
-    cur.execute("VACUUM ANALYZE cascade.com_cas;")
+    # VACUUM command serves for updating statistics stored in postgres db
+    # that relates to nour r_tree when we rerun the python script for other relations
+    cur.execute("VACUUM ANALYZE %s;" % table_name)
+    cur.execute("VACUUM ANALYZE cascade.r_tree;")
+    # we notify qgis of the updates to display changes on the fly
     cur.execute("NOTIFY qgis, 'refresh qgis';")
+
+conn.commit()
+cur.execute("END TRANSACTION;")
+cur.execute("VACUUM ANALYZE cascade.com_cas;")
+cur.execute("NOTIFY qgis, 'refresh qgis';")
 cur.close()
 conn.close()
