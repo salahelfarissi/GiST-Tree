@@ -5,7 +5,7 @@ import csv
 # Connect to mono database
 # I am using WSL2, so the host needs to be adjusted
 conn = psycopg2.connect("""
-    host=192.168.1.104
+    host=192.168.1.105
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'

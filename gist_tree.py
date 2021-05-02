@@ -87,7 +87,7 @@ cur.execute("""SELECT
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-    [oid])
+            [oid])
 g_type = cur.fetchone()
 # srid of com_cas table
 cur.execute("""SELECT 
@@ -99,7 +99,7 @@ cur.execute("""SELECT
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-    [oid])
+            [oid])
 g_srid = cur.fetchone()
 
 # cur.execute("""
@@ -118,7 +118,7 @@ cur.execute("""
 cur.execute("SELECT count(*) FROM communes;")
 count = cur.fetchone()
 
-for i in range (count[0]):
+for i in range(count[0]):
     cur.execute("""
         INSERT INTO cascade.com_cas
         select 
@@ -131,8 +131,8 @@ for i in range (count[0]):
         limit 1
         offset %s;
         """,
-        [i])
-    
+                [i])
+
     cur.execute("SELECT gist_stat(%s);", [oid])
     stats = cur.fetchone()
 
@@ -143,7 +143,7 @@ for i in range (count[0]):
         for el in lst:
             sub = el.split(', ')
             res.append(sub)
-        
+
         return(res)
 
     def expandB(lst):
@@ -170,27 +170,27 @@ for i in range (count[0]):
     cur.execute("""DROP TABLE IF EXISTS %s;
         """ % table_name)
     cur.execute("""CREATE TABLE %s (geom geometry(%%s, %%s))
-        """ %table_name,
-        [g_type[0], g_srid[0]])
+        """ % table_name,
+                [g_type[0], g_srid[0]])
 
     cur.execute("""INSERT INTO %s 
     SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %%s)
     FROM (SELECT * FROM gist_print(%%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
     """ % table_name,
-    [g_srid[0], oid])
+                [g_srid[0], oid])
 
     cur.execute("DROP TABLE IF EXISTS cascade.r_tree;")
     cur.execute("""CREATE TABLE cascade.r_tree (
             geom geometry(%s, %s));
         """,
-        [g_type[0], g_srid[0]])
+                [g_type[0], g_srid[0]])
 
     cur.execute("""
     INSERT INTO cascade.r_tree 
     SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq
     """,
-    [g_srid[0], oid])
+                [g_srid[0], oid])
 
     # commiting our changes to the database
     conn.commit()
