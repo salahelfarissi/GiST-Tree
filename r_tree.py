@@ -29,10 +29,10 @@ cur.execute("""CREATE TABLE r_tree.indices (
     """)
 
 # This lists OIDs of spatial indices
-## (39) WITH gt_name... this lists spatial tables
-### (42) geometry_columns is a view that comes with postgis, it holds spatial relations attributes (geometry type, srid, etc)
-#### (45) SELECT... this returns OID (Object Identifier) of spatial indices
-##### (51) AND c.relname IN (... this lists all spatial indices
+# (39) WITH gt_name... this lists spatial tables
+# (42) geometry_columns is a view that comes with postgis, it holds spatial relations attributes (geometry type, srid, etc)
+# (45) SELECT... this returns OID (Object Identifier) of spatial indices
+# (51) AND c.relname IN (... this lists all spatial indices
 cur.execute("""
     INSERT INTO indices
 
@@ -94,7 +94,7 @@ cur.execute("""
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-    [oid])
+            [oid])
 g_type = cur.fetchone()
 
 # retrieving the srid of the table that is associated with index that the user chose
@@ -108,7 +108,7 @@ cur.execute("""
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-    [oid])
+            [oid])
 g_srid = cur.fetchone()
 
 # gist_stat() comes with the gevel extension
@@ -121,16 +121,20 @@ stats = cur.fetchone()
 print(stats[0])
 
 # this function creates sublists
+
+
 def extractDigits(lst):
     res = []
     for el in lst:
         sub = el.split(', ')
         res.append(sub)
-      
+
     return(res)
 
 # this function allows for gist_stat() and gist_tree() output to be used in other line of codes
-# mainly changing data structures for easy access 
+# mainly changing data structures for easy access
+
+
 def expandB(lst):
     # converting tuple to list [...]
     tmp = list(lst)
@@ -146,6 +150,7 @@ def expandB(lst):
     tmp = extractDigits(tmp)
 
     return(tmp)
+
 
 l = expandB(stats)
 
@@ -182,12 +187,12 @@ df.drop('col9', inplace=True, axis=1)
 
 # the following code splits columns to retrieve specific values
 # this process was mandatory since the gist_tree() output was txt consisting of a single string
-df[['page','level']] = df.level.str.split("(",expand=True)
-df[['tmp','level']] = df.level.str.split(":",expand=True)
-df[['level','tmp']] = df.level.str.split(")",expand=True)
-df[['free(Bytes)','occupied']] = df.space.str.split("b",expand=True)
-df[['tmp','occupied']] = df.occupied.str.split("(",expand=True)
-df[['occupied(%)','tmp']] = df.occupied.str.split("%",expand=True)
+df[['page', 'level']] = df.level.str.split("(", expand=True)
+df[['tmp', 'level']] = df.level.str.split(":", expand=True)
+df[['level', 'tmp']] = df.level.str.split(")", expand=True)
+df[['free(Bytes)', 'occupied']] = df.space.str.split("b", expand=True)
+df[['tmp', 'occupied']] = df.occupied.str.split("(", expand=True)
+df[['occupied(%)', 'tmp']] = df.occupied.str.split("%", expand=True)
 df.drop('tmp', inplace=True, axis=1)
 df.drop('space', inplace=True, axis=1)
 df.drop('occupied', inplace=True, axis=1)
@@ -196,7 +201,8 @@ df.drop('occupied', inplace=True, axis=1)
 df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
 
 # renaming columns to maintain clarity
-df.rename(columns = {'page':'node', 'level':'level', 'blk':'block', 'tuple':'num_tuples', 'free(Bytes)':'free_space(bytes)', 'occupied(%)':'occupied_space(%)'}, inplace = True)
+df.rename(columns={'page': 'node', 'level': 'level', 'blk': 'block', 'tuple': 'num_tuples',
+          'free(Bytes)': 'free_space(bytes)', 'occupied(%)': 'occupied_space(%)'}, inplace=True)
 
 # writing all changes to the original file
 df.to_csv('tree.csv', index=False)
@@ -211,13 +217,13 @@ CREATE TABLE IF NOT EXISTS r_tree.tree (
     "free_space(bytes)" double precision,
     "occupied_space(%)" double precision);
 """
-)
+            )
 
 cur.execute("TRUNCATE TABLE tree RESTART IDENTITY;")
 
 # copying data from tree.csv which is on our disk to database "mono"
 with open('tree.csv', 'r') as f:
-    next(f) # Skip the header row.
+    next(f)  # Skip the header row.
     cur.copy_from(f, 'tree', sep=',')
 
 # creating the table that will hold the bounding boxes of the GiST tree
@@ -225,7 +231,7 @@ cur.execute("""
     CREATE TABLE IF NOT EXISTS r_tree.r_tree (
         geom geometry(%s));
     """,
-    [g_type[0]])
+            [g_type[0]])
 cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 cur.execute("""
@@ -233,7 +239,7 @@ cur.execute("""
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-    [g_srid[0], oid, num_level])
+            [g_srid[0], oid, num_level])
 
 # commiting our changes to the database
 conn.commit()
