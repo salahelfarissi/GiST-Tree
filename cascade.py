@@ -141,20 +141,20 @@ for i in range(count[0]):
     stats = [sub.split(': ') for subl in stats for sub in subl]
 
     cur.execute(sql.SQL("""
-        DROP TABLE IF EXISTS {table};
+        DROP TABLE IF EXISTS cascade.{table};
             """).format(
-        table=sql.Identifier('cascade.tree_'+str(i))))
+        table=sql.Identifier('tree_'+str(i))))
 
     cur.execute(sql.SQL("""
-        CREATE TABLE {table} (geom geometry (%s, %s));""").format(
-        table=sql.Identifier('cascade.tree_'+str(i))),
+        CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
+        table=sql.Identifier('tree_'+str(i))),
         [g_type[0], g_srid[0]])
 
     cur.execute(sql.SQL("""
-        INSERT INTO {table}
+        INSERT INTO cascade.{table}
         SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-        table=sql.Identifier('cascade.tree_'+str(i))),
+        table=sql.Identifier('tree_'+str(i))),
         [g_srid[0], index])
 
     cur.execute("""
@@ -176,8 +176,8 @@ for i in range(count[0]):
     cur.execute("END TRANSACTION;")
 
     cur.execute(sql.SQL("""
-        VACUUM ANALYZE {table};""").format(
-        table=sql.Identifier('cascade.tree_'+str(i))))
+        VACUUM ANALYZE cascade.{table};""").format(
+        table=sql.Identifier('tree_'+str(i))))
 
     cur.execute("VACUUM ANALYZE cascade.r_tree;")
 
