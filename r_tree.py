@@ -3,7 +3,7 @@ import psycopg2
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
 conn = psycopg2.connect("""
-    host=192.168.1.105
+    host=192.168.1.107
     dbname=mono
     password='%D2a3#PsT'
     """)
@@ -26,7 +26,7 @@ cur.execute("""
 cur.execute("CREATE SCHEMA IF NOT EXISTS gevel;")
 
 cur.execute("""
-    CREATE EXTENSION gevel_ext
+    CREATE EXTENSION IF NOT EXISTS gevel_ext
     SCHEMA gevel;""")
 
 # ? Output stored GiST indices
@@ -64,7 +64,7 @@ cur.execute("""
             AND indisprimary != 't' ))""")
 cur.execute("SELECT * FROM indices;")
 
-indeces = cur.fetchall()
+indices = cur.fetchall()
 
 print("\nList of GiST indices\n")
 
@@ -131,7 +131,7 @@ def expandB(lst):
 
 stats = expandB(stats)
 l = [sub.split(': ') for subl in stats for sub in subl]
-
+print(stats)
 print(f"Number of levels → {stats[0][1]}\n")
 level = int(input("Level to visualize \n↳ "))
 
