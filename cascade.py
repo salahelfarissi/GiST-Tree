@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2 import sql
 
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
@@ -27,7 +28,7 @@ cur.execute("""
 
 cur.execute("""
     CREATE TABLE IF NOT EXISTS cascade.indices (
-    idx_oid serial primary key, 
+    idx_oid serial primary key,
     idx_name varchar);
     """)
 
@@ -68,8 +69,8 @@ index = list(index)
 index = index[0]
 
 cur.execute("""
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
             ELSE type
         END AS type
@@ -83,7 +84,7 @@ cur.execute("""
             [index])
 g_type = cur.fetchone()
 
-cur.execute("""SELECT 
+cur.execute("""SELECT
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
@@ -101,8 +102,8 @@ count = cur.fetchone()
 for i in range(count[0]):
     cur.execute("""
         INSERT INTO cascade.com_cas
-        select 
-            c.c_code, 
+        select
+            c.c_code,
             c.geom
         from maroc.communes c
         order by c.geom <-> (
@@ -145,20 +146,16 @@ for i in range(count[0]):
         table=sql.Identifier('cascade.tree_'+str(i))))
 
     cur.execute(sql.SQL("""
-        CREATE TABLE {table} (geom geometry ({type}, {srid}));
-            """).format(
-        table=sql.Identifier('cascade.tree_'+str(i)),
-        type=sql.Identifier(g_type[0]),
-        srid=sql.Identifier(g_srid[0])))
+        CREATE TABLE {table} (geom geometry (%s, %s));""").format(
+        table=sql.Identifier('cascade.tree_'+str(i))),
+        [g_type[0], g_srid[0]])
 
     cur.execute(sql.SQL("""
         INSERT INTO {table}
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, {srid})
-        FROM (SELECT * FROM gist_print({index}) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-        table=sql.Identifier('cascade.tree_'+str(i)),
-        srid=sql.Identifier(g_srid[0]),
-        index=sql.Identifier(index)
-    ))
+        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
+        table=sql.Identifier('cascade.tree_'+str(i))),
+        [g_srid[0], index])
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cascade.r_tree (
@@ -168,13 +165,11 @@ for i in range(count[0]):
 
     cur.execute("TRUNCATE TABLE cascade.r_tree")
 
-    cur.execute(sql.SQL("""
+    cur.execute("""
             INSERT INTO cascade.r_tree
-            SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, {srid})
-            FROM (SELECT * FROM gist_print({index}) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-        srid=sql.Identifier(g_srid[0]),
-        index=sql.Identifier(index)
-    ))
+            SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""",
+                [g_srid[0], index])
 
     conn.commit()
 
