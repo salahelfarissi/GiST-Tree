@@ -32,11 +32,12 @@ cur.execute("""
     SCHEMA gevel;""")
 
 # ? Output stored GiST indices
-cur.execute("TRUNCATE TABLE r_tree.indices;")
+cur.execute("CREATE SCHEMA IF NOT EXISTS r_tree;")
 cur.execute("""
     CREATE TABLE IF NOT EXISTS r_tree.indices (
         idx_oid serial primary key, 
         idx_name varchar);""")
+cur.execute("TRUNCATE TABLE r_tree.indices;")
 cur.execute("""
     INSERT INTO r_tree.indices
     WITH gt_name AS (
@@ -64,7 +65,8 @@ cur.execute("""
             AND pg_class.oid = pg_index.indrelid
             AND indisunique != 't'
             AND indisprimary != 't' ))""")
-cur.execute("SELECT * FROM indices;")
+
+cur.execute("SELECT * FROM r_tree.indices;")
 
 indices = cur.fetchall()
 
@@ -84,7 +86,7 @@ cur.execute("""
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM r_tree.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
@@ -97,7 +99,7 @@ cur.execute("""
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM r_tree.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
