@@ -1,4 +1,6 @@
 import psycopg2
+import pandas as pd
+import csv
 
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
@@ -110,7 +112,7 @@ stats = cur.fetchone()
 print(stats[0])
 
 
-def extractDigits(lst):
+def extractDigits(lst):  # ? this function is used by expandB()
     res = []
     for el in lst:
         sub = el.split(', ')
@@ -130,8 +132,8 @@ def expandB(lst):
 
 
 stats = expandB(stats)
-l = [sub.split(': ') for subl in stats for sub in subl]
-print(stats)
+stats = [sub.split(': ') for subl in stats for sub in subl]
+
 print(f"Number of levels → {stats[0][1]}\n")
 level = int(input("Level to visualize \n↳ "))
 
@@ -198,7 +200,7 @@ cur.execute("""
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-            [g_srid[0], oid, num_level])
+            [g_srid[0], index, level])
 
 conn.commit()
 
