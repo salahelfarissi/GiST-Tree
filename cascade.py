@@ -14,20 +14,26 @@ conn = psycopg2.connect(f"""
 # * Open a cursor to perform database operations
 cur = conn.cursor()
 
-cur.execute("CREATE SCHEMA IF NOT EXISTS cascade;")
+# * Cascade schema will hold R-Tree bbox generated through iteration
+schema = 'cascade'
+cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
 
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS cascade.com_cas (
+# * I will insert geometries from communes table into com_cas table through iteration
+new_communes_table = 'cascade.com_cas'
+cur.execute(f"""
+    CREATE TABLE IF NOT EXISTS {new_communes_table} (
         c_code varchar(32),
         geom geometry(MultiPolygon, 4326));""")
 
-cur.execute("TRUNCATE TABLE cascade.com_cas;")
+cur.execute(f"TRUNCATE TABLE {new_communes_table};")
 
-cur.execute("""
-    CREATE INDEX IF NOT EXISTS com_cas_geom_idx
-        ON cascade.com_cas USING gist
+new_index = 'com_cas_geom_idx'
+cur.execute(f"""
+    CREATE INDEX IF NOT EXISTS {new_index}
+        ON {new_communes_table} USING gist
         (geom);""")
 
+# TODO: use f-strings in subsequent queries
 cur.execute("""
     CREATE TABLE IF NOT EXISTS cascade.indices (
     idx_oid serial primary key,
