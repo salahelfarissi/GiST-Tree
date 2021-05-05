@@ -34,6 +34,7 @@ cur.execute(f"""
         (geom);""")
 
 # TODO: use f-strings in subsequent queries
+# TODO: use a combination of tab and newline when interacting with the user
 cur.execute("""
     CREATE TABLE IF NOT EXISTS cascade.indices (
     idx_oid serial primary key,
