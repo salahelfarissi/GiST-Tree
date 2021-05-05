@@ -4,7 +4,7 @@ from psycopg2 import sql
 # * Connect to an existing database
 host = 'localhost'
 dbname = 'mono'
-password = 'password'
+password = '%D2a3#PsT'
 conn = psycopg2.connect(f"""
     host={host}
     dbname={dbname}
