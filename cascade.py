@@ -2,11 +2,13 @@ import psycopg2
 from psycopg2 import sql
 
 # * Connect to an existing database
-# ! Host ip changes for virtual machines
-conn = psycopg2.connect("""
-    host=192.168.1.105
-    dbname=mono
-    password='%D2a3#PsT'
+host = 'localhost'
+dbname = 'mono'
+password = 'password'
+conn = psycopg2.connect(f"""
+    host={host}
+    dbname={dbname}
+    password={password}
     """)
 
 # * Open a cursor to perform database operations
@@ -110,9 +112,9 @@ for i in range(count[0]):
             select geom from maroc.communes
             where c_nom = 'Lagouira')
         limit 1
-        offset %s;
+        offset %(int)s;
         """,
-                [i])
+                {'int': i})
 
     cur.execute("SELECT gist_stat(%s);", [index])
     stats = cur.fetchone()
