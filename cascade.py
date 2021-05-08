@@ -74,7 +74,6 @@ cur.execute("""
     SELECT * FROM cascade.indices
     WHERE idx_name = 'com_cas_geom_idx';""")
 index = cur.fetchone()
-index = list(index)
 index = index[0]
 
 cur.execute("""
