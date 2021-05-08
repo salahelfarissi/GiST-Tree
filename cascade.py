@@ -35,15 +35,16 @@ cur.execute(f"""
 
 # TODO: use f-strings in subsequent queries
 # TODO: use a combination of tab and newline when interacting with the user
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS cascade.indices (
+indices_table = 'cascade.indices'
+cur.execute(f"""
+    CREATE TABLE IF NOT EXISTS {indices_table} (
     idx_oid serial primary key,
     idx_name varchar);
     """)
 
-cur.execute("TRUNCATE TABLE cascade.indices;")
+cur.execute(f"TRUNCATE TABLE {indices_table};")
 
-cur.execute("""INSERT INTO cascade.indices
+cur.execute(f"""INSERT INTO {indices_table}
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
@@ -70,8 +71,8 @@ cur.execute("""INSERT INTO cascade.indices
             AND indisunique != 't'
             AND indisprimary != 't' ))""")
 
-cur.execute("""
-    SELECT * FROM cascade.indices
+cur.execute(f"""
+    SELECT * FROM {indices_table}
     WHERE idx_name = 'com_cas_geom_idx';""")
 index = cur.fetchone()
 index = index[0]
@@ -104,12 +105,12 @@ cur.execute("""SELECT
             [index])
 g_srid = cur.fetchone()
 
-cur.execute("SELECT count(*) FROM communes;")
+cur.execute("SELECT count(*) FROM maroc.communes;")
 count = cur.fetchone()
 
 for i in range(count[0]):
-    cur.execute("""
-        INSERT INTO cascade.com_cas
+    cur.execute(f"""
+        INSERT INTO {new_communes_table}
         select
             c.c_code,
             c.geom
@@ -173,7 +174,7 @@ for i in range(count[0]):
 
     cur.execute("TRUNCATE TABLE cascade.r_tree")
 
-    cur.execute("""
+    cur.execute(f"""
             INSERT INTO cascade.r_tree
             SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
             FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""",
