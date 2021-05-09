@@ -193,6 +193,7 @@ with open('tree.csv', 'r') as f:
 cur.execute("""
     CREATE TABLE IF NOT EXISTS r_tree.r_tree (
         id serial primary key,
+        area_km2 numeric,
         geom geometry(%s));
     """,
             [g_type[0]])
@@ -204,6 +205,12 @@ cur.execute("""
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
             [g_srid[0], index, level])
+
+cur.execute("""
+    UPDATE r_tree.r_tree
+    SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
+    """)
+
 
 conn.commit()
 
