@@ -104,7 +104,16 @@ cur.execute("""SELECT
             [index])
 g_srid = cur.fetchone()
 
-cur.execute("SELECT count(*) FROM maroc.communes;")
+communes_table = 'maroc.communes'
+
+cur.execute(f"""
+    CREATE OR REPLACE FUNCTION num_geom() RETURNS INTEGER as $$
+        select count(*) from {communes_table};
+    $$ LANGUAGE SQL;
+    """)
+
+
+cur.execute("SELECT num_geom();")
 count = cur.fetchone()
 
 for i in range(count[0]):
