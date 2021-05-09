@@ -5,7 +5,7 @@ import csv
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
 conn = psycopg2.connect("""
-    host=192.168.1.101
+    host=localhost
     dbname=mono
     password='%D2a3#PsT'
     """)
@@ -192,13 +192,14 @@ with open('tree.csv', 'r') as f:
 
 cur.execute("""
     CREATE TABLE IF NOT EXISTS r_tree.r_tree (
+        id serial primary key,
         geom geometry(%s));
     """,
             [g_type[0]])
 cur.execute("TRUNCATE TABLE r_tree.r_tree RESTART IDENTITY;")
 
 cur.execute("""
-    INSERT INTO r_tree.r_tree 
+    INSERT INTO r_tree.r_tree (geom)
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
