@@ -2,13 +2,12 @@ import psycopg2
 from psycopg2 import sql
 
 # * Connect to an existing database
-host = 'localhost'
-dbname = 'mono'
-password = '%D2a3#PsT'
+login = ['localhost', 'mono', '%D2a3#PsT']
+
 conn = psycopg2.connect(f"""
-    host={host}
-    dbname={dbname}
-    password={password}
+    host={login[0]}
+    dbname={login[1]}
+    password={login[2]}
     """)
 
 # * Open a cursor to perform database operations
