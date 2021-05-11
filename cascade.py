@@ -34,6 +34,8 @@ cur.execute(f"""
 
 # TODO: use f-strings in subsequent queries
 # TODO: use a combination of tab and newline when interacting with the user
+# ? sort & sort(reverse=True) for a query result in psycopg2.
+# ? [].sort() method sorts a list permanently otherwise use the sorted([]) method.
 indices_table = 'cascade.indices'
 cur.execute(f"""
     CREATE TABLE IF NOT EXISTS {indices_table} (
