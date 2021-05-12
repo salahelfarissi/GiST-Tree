@@ -1,3 +1,4 @@
+from re import L
 import psycopg2
 from psycopg2 import sql
 
@@ -12,10 +13,6 @@ conn = psycopg2.connect(f"""
 
 # * Open a cursor to perform database operations
 cur = conn.cursor()
-
-# * Cascade schema will hold R-Tree bbox generated through iteration
-schema = 'cascade'
-cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
 
 # * I will insert geometries from communes table into com_cas table through iteration
 new_communes_table = 'cascade.com_cas'
@@ -137,7 +134,7 @@ def expandB(lst):
     return(tmp)
 
 
-for i in range(count[0]):
+for i in range(1, count[0]+1):
     cur.execute(f"""
         INSERT INTO {new_communes_table}
         select
@@ -160,46 +157,35 @@ for i in range(count[0]):
 
     stats = [sub.split(': ') for subl in stats for sub in subl]
 
-    tmp = int(stats[0][1])
+    level = int(stats[0][1])
 
-    print(tmp)
-    if 1 in {tmp}:
+    level = [value for value in range(1, level+1)]
 
+    for l in level:
+
+        schema = 'level_'+str(l)
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
+        table = 'tree_l'+str(l)+'_'+str(i)
         cur.execute(sql.SQL("""
-            DROP TABLE IF EXISTS cascade.{table};
+            DROP TABLE IF EXISTS {schema}.{table};
                 """).format(
-            table=sql.Identifier('tree_l1_'+str(i))))
+            schema=sql.Identifier(schema),
+            table=sql.Identifier(table)),
+            [schema])
 
         cur.execute(sql.SQL("""
-            CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
-            table=sql.Identifier('tree_l1_'+str(i))),
+            CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
+            schema=sql.Identifier(schema),
+            table=sql.Identifier(table)),
             [g_type[0], g_srid[0]])
 
         cur.execute(sql.SQL("""
-            INSERT INTO cascade.{table}
+            INSERT INTO {schema}.{table}
             SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-            table=sql.Identifier('tree_l1_'+str(i))),
-            [g_srid[0], index[0]])
-
-    if 2 in {tmp}:
-
-        cur.execute(sql.SQL("""
-            DROP TABLE IF EXISTS cascade.{table};
-                """).format(
-            table=sql.Identifier('tree_l2_'+str(i))))
-
-        cur.execute(sql.SQL("""
-            CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
-            table=sql.Identifier('tree_l2_'+str(i))),
-            [g_type[0], g_srid[0]])
-
-        cur.execute(sql.SQL("""
-            INSERT INTO cascade.{table}
-            SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-            table=sql.Identifier('tree_l2_'+str(i))),
-            [g_srid[0], index[0]])
+            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+            schema=sql.Identifier(schema),
+            table=sql.Identifier(table)),
+            [g_srid[0], index[0], l])
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cascade.r_tree (
