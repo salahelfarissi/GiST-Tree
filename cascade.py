@@ -72,13 +72,13 @@ cur.execute(f"""INSERT INTO {indices_table}
             AND indisunique != 't'
             AND indisprimary != 't' ))""")
 
+# * index of the cascade table
 cur.execute(f"""
     SELECT * FROM {indices_table}
     WHERE idx_name = 'com_cas_geom_idx';""")
 index = cur.fetchone()
-index = index[0]
 
-cur.execute("""
+cur.execute(f"""
     SELECT
         CASE
             WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
@@ -89,23 +89,22 @@ cur.execute("""
 	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
-    """,
-            [index])
+	    WHERE idx_oid::integer = {index[0]});
+    """)
 g_type = cur.fetchone()
 
-cur.execute("""SELECT
+cur.execute(f"""SELECT
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
 	    SELECT tablename FROM cascade.indices
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
-    """,
-            [index])
+	    WHERE idx_oid::integer = {index[0]});
+    """)
 g_srid = cur.fetchone()
 
+# * existing communes table
 communes_table = 'maroc.communes'
 
 cur.execute(f"""
@@ -129,11 +128,10 @@ for i in range(count[0]):
             select geom from maroc.communes
             where c_nom = 'Lagouira')
         limit 1
-        offset %(int)s;
-        """,
-                {'int': i})
+        offset {i};
+        """)
 
-    cur.execute("SELECT gist_stat(%s);", [index])
+    cur.execute(f"SELECT gist_stat({index[0]});")
     stats = cur.fetchone()
 
     print(stats[0])
