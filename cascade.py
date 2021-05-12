@@ -162,50 +162,52 @@ for i in range(1, count[0]+1):
 
     for l in level:
 
-        if len(level) == 1 or l == 1:
+        if len(level) == 1:
 
-            schema = 'level_'+str(l+1)
-            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
+            relation = {
+                'schema': 'level_'+str(l+1),
+                'table': 'tree_l'+str(l+1)+'_'+str(i)
+            }
 
-            table = 'tree_l'+str(l+1)+'_'+str(i)
+            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
+
             cur.execute(sql.SQL("""
                 DROP TABLE IF EXISTS {schema}.{table};
                     """).format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
-                [schema])
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])))
 
             cur.execute(sql.SQL("""
                 CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
                 [g_type[0], g_srid[0]])
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.{table}
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
                 [g_srid[0], index[0], l])
 
             cur.execute(sql.SQL("""
                 CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
                     geom geometry(%s, %s));
                 """).format(
-                schema=sql.Identifier(schema)
+                schema=sql.Identifier(relation['schema'])
             ),
                 [g_type[0], g_srid[0]])
 
             cur.execute(sql.SQL("""
                 TRUNCATE TABLE {schema}.r_tree_l2""").format(
-                schema=sql.Identifier(schema)))
+                schema=sql.Identifier(relation['schema'])))
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.r_tree_l2
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(schema)),
+                schema=sql.Identifier(relation['schema'])),
                 [g_srid[0], index[0], l])
 
             conn.commit()
@@ -214,7 +216,65 @@ for i in range(1, count[0]+1):
 
             cur.execute(sql.SQL("""
                 VACUUM ANALYZE {schema}.r_tree_l2;""").format(
-                schema=sql.Identifier(schema)))
+                schema=sql.Identifier(relation['schema'])))
+
+            cur.execute("NOTIFY qgis, 'refresh qgis';")
+
+        elif l == 1:
+
+            relation = {
+                'schema': 'level_'+str(l+1),
+                'table': 'tree_l'+str(l+1)+'_'+str(i)
+            }
+
+            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
+
+            cur.execute(sql.SQL("""
+                DROP TABLE IF EXISTS {schema}.{table};
+                    """).format(
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])))
+
+            cur.execute(sql.SQL("""
+                CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
+                [g_type[0], g_srid[0]])
+
+            cur.execute(sql.SQL("""
+                INSERT INTO {schema}.{table}
+                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
+                [g_srid[0], index[0], l])
+
+            cur.execute(sql.SQL("""
+                CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
+                    geom geometry(%s, %s));
+                """).format(
+                schema=sql.Identifier(relation['schema'])
+            ),
+                [g_type[0], g_srid[0]])
+
+            cur.execute(sql.SQL("""
+                TRUNCATE TABLE {schema}.r_tree_l2""").format(
+                schema=sql.Identifier(relation['schema'])))
+
+            cur.execute(sql.SQL("""
+                INSERT INTO {schema}.r_tree_l2
+                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+                schema=sql.Identifier(relation['schema'])),
+                [g_srid[0], index[0], l])
+
+            conn.commit()
+
+            cur.execute("END TRANSACTION;")
+
+            cur.execute(sql.SQL("""
+                VACUUM ANALYZE {schema}.r_tree_l2;""").format(
+                schema=sql.Identifier(relation['schema'])))
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
