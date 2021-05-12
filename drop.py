@@ -2,7 +2,7 @@ import psycopg2
 
 # Connect to db
 conn = psycopg2.connect("""
-    host=192.168.1.101
+    host=localhost
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
@@ -27,7 +27,13 @@ cur.execute("SELECT count(*) FROM maroc.communes;")
 count = cur.fetchone()
 
 for i in range(count[0]):
-    table_name = 'cascade.tree_'+str(i)
+    table_name = 'cascade.tree_l1_'+str(i)
+    cur.execute("""
+        DROP TABLE IF EXISTS %s;
+        """ % table_name)
+
+for i in range(count[0]):
+    table_name = 'cascade.tree_l2_'+str(i)
     cur.execute("""
         DROP TABLE IF EXISTS %s;
         """ % table_name)

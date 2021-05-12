@@ -117,6 +117,26 @@ cur.execute(f"""
 cur.execute("SELECT num_geom();")
 count = cur.fetchone()
 
+
+def extractDigits(lst):
+    res = []
+    for el in lst:
+        sub = el.split(', ')
+        res.append(sub)
+
+    return(res)
+
+
+def expandB(lst):
+    tmp = list(lst)
+    tmp = tmp[0].splitlines()
+    for e in range(len(tmp)):
+        tmp[e] = " ".join(tmp[e].split())
+    tmp = extractDigits(tmp)
+
+    return(tmp)
+
+
 for i in range(count[0]):
     cur.execute(f"""
         INSERT INTO {new_communes_table}
@@ -136,43 +156,50 @@ for i in range(count[0]):
 
     print(stats[0])
 
-    def extractDigits(lst):
-        res = []
-        for el in lst:
-            sub = el.split(', ')
-            res.append(sub)
-
-        return(res)
-
-    def expandB(lst):
-        tmp = list(lst)
-        tmp = tmp[0].splitlines()
-        for e in range(len(tmp)):
-            tmp[e] = " ".join(tmp[e].split())
-        tmp = extractDigits(tmp)
-
-        return(tmp)
-
     stats = expandB(stats)
 
     stats = [sub.split(': ') for subl in stats for sub in subl]
 
-    cur.execute(sql.SQL("""
-        DROP TABLE IF EXISTS cascade.{table};
-            """).format(
-        table=sql.Identifier('tree_'+str(i))))
+    tmp = int(stats[0][1])
 
-    cur.execute(sql.SQL("""
-        CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
-        table=sql.Identifier('tree_'+str(i))),
-        [g_type[0], g_srid[0]])
+    print(tmp)
+    if 1 in {tmp}:
 
-    cur.execute(sql.SQL("""
-        INSERT INTO cascade.{table}
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
-        table=sql.Identifier('tree_'+str(i))),
-        [g_srid[0], index])
+        cur.execute(sql.SQL("""
+            DROP TABLE IF EXISTS cascade.{table};
+                """).format(
+            table=sql.Identifier('tree_l1_'+str(i))))
+
+        cur.execute(sql.SQL("""
+            CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
+            table=sql.Identifier('tree_l1_'+str(i))),
+            [g_type[0], g_srid[0]])
+
+        cur.execute(sql.SQL("""
+            INSERT INTO cascade.{table}
+            SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
+            table=sql.Identifier('tree_l1_'+str(i))),
+            [g_srid[0], index[0]])
+
+    if 2 in {tmp}:
+
+        cur.execute(sql.SQL("""
+            DROP TABLE IF EXISTS cascade.{table};
+                """).format(
+            table=sql.Identifier('tree_l2_'+str(i))))
+
+        cur.execute(sql.SQL("""
+            CREATE TABLE cascade.{table} (geom geometry (%s, %s));""").format(
+            table=sql.Identifier('tree_l2_'+str(i))),
+            [g_type[0], g_srid[0]])
+
+        cur.execute(sql.SQL("""
+            INSERT INTO cascade.{table}
+            SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""").format(
+            table=sql.Identifier('tree_l2_'+str(i))),
+            [g_srid[0], index[0]])
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cascade.r_tree (
@@ -186,15 +213,11 @@ for i in range(count[0]):
             INSERT INTO cascade.r_tree
             SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
             FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""",
-                [g_srid[0], index])
+                [g_srid[0], index[0]])
 
     conn.commit()
 
     cur.execute("END TRANSACTION;")
-
-    cur.execute(sql.SQL("""
-        VACUUM ANALYZE cascade.{table};""").format(
-        table=sql.Identifier('tree_'+str(i))))
 
     cur.execute("VACUUM ANALYZE cascade.r_tree;")
 
