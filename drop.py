@@ -20,11 +20,11 @@ cur.execute("""
     """)
 
 cur.execute("""
-    DROP TABLE IF EXISTS level_1.r_tree;
+    DROP TABLE IF EXISTS level_1.r_tree_l1;
     """)
 
 cur.execute("""
-    DROP TABLE IF EXISTS level_2.r_tree;
+    DROP TABLE IF EXISTS level_2.r_tree_l2;
     """)
 
 cur.execute("SELECT count(*) FROM maroc.communes;")
