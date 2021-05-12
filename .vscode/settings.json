@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\salah.elfarissi\\anaconda3\\python.exe",
+    "python.pythonPath": "c:\\Users\\salah.elfarissi\\anaconda3\\envs\\r_tree\\python.exe",
     "sqltools.connections": [
         {
             "previewLimit": 50,
