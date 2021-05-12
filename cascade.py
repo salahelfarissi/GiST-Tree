@@ -1,4 +1,3 @@
-from re import L
 import psycopg2
 from psycopg2 import sql
 
