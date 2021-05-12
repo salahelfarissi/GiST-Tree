@@ -144,7 +144,7 @@ for i in range(1, count[0]+1):
             select geom from maroc.communes
             where c_nom = 'Lagouira')
         limit 1
-        offset {i};
+        offset {i-1};
         """)
 
     cur.execute(f"SELECT gist_stat({index[0]});")
@@ -186,31 +186,38 @@ for i in range(1, count[0]+1):
             table=sql.Identifier(table)),
             [g_srid[0], index[0], l])
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS cascade.r_tree (
-            geom geometry(%s, %s));
-        """,
-                [g_type[0], g_srid[0]])
+        cur.execute(sql.SQL("""
+            CREATE TABLE IF NOT EXISTS {schema}.r_tree (
+                geom geometry(%s, %s));
+            """).format(
+            schema=sql.Identifier(schema)
+        ),
+            [g_type[0], g_srid[0]])
 
-    cur.execute("TRUNCATE TABLE cascade.r_tree")
+        cur.execute(sql.SQL("""
+            TRUNCATE TABLE {schema}.r_tree""").format(
+            schema=sql.Identifier(schema)))
 
-    cur.execute(f"""
-            INSERT INTO cascade.r_tree
+        cur.execute(sql.SQL("""
+            INSERT INTO {schema}.r_tree
             SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = 1) AS subq""",
-                [g_srid[0], index[0]])
+            FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+            schema=sql.Identifier(schema)),
+            [g_srid[0], index[0], l])
 
-    conn.commit()
+        conn.commit()
 
-    cur.execute("END TRANSACTION;")
+        cur.execute("END TRANSACTION;")
 
-    cur.execute("VACUUM ANALYZE cascade.r_tree;")
+        cur.execute(sql.SQL("""
+            VACUUM ANALYZE {schema}.r_tree;""").format(
+            schema=sql.Identifier(schema)))
 
-    cur.execute("NOTIFY qgis, 'refresh qgis';")
+        cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 conn.commit()
-cur.execute("END TRANSACTION;")
-cur.execute("VACUUM ANALYZE cascade.com_cas;")
+
 cur.execute("NOTIFY qgis, 'refresh qgis';")
+
 cur.close()
 conn.close()
