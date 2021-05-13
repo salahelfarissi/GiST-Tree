@@ -2,36 +2,57 @@ import psycopg2
 from psycopg2 import sql
 
 # * Connect to an existing database
-login = ['localhost', 'mono', '%D2a3#PsT']
+psql = {
+    'host': 'localhost',
+    'dbname': 'mono',
+    'password': '%D2a3#PsT'
+}
 
-conn = psycopg2.connect(f"""
-    host={login[0]}
-    dbname={login[1]}
-    password={login[2]}
+conn = psycopg2.psql(f"""
+    host={psql['host']}
+    dbname={psql['dbname']}
+    password={psql['password']}
     """)
 
 # * Open a cursor to perform database operations
 cur = conn.cursor()
 
-# * I will insert geometries from communes table into com_cas table through iteration
-new_communes_table = 'cascade.com_cas'
-cur.execute(f"""
-    CREATE TABLE IF NOT EXISTS {new_communes_table} (
+# * dict
+new_table = {
+    'schema': 'cascade',
+    'table': 'communes',
+    'index': 'new_communes_geom_idx'
+}
+
+cur.execute(sql.SQL("""
+    CREATE SCHEMA IF NOT EXISTS {schema};
+    """).format(
+    schema=sql.Identifier(new_table['schema'])))
+
+cur.execute(sql.SQL("""
+    CREATE TABLE IF NOT EXISTS {schema}.{table} (
         c_code varchar(32),
-        geom geometry(MultiPolygon, 4326));""")
+        geom geometry(MultiPolygon, 4326));
+        """).format(
+            schema=sql.Identifier(new_table['schema']),
+            table=sql.Identifier(new_table['table'])))
 
-cur.execute(f"TRUNCATE TABLE {new_communes_table};")
+cur.execute(sql.SQL("""
+    TRUNCATE TABLE {schema}.{table};
+    """).format(
+    schema=sql.Identifier(new_table['schema']),
+    table=sql.Identifier(new_table['table'])))
 
-new_index = 'com_cas_geom_idx'
-cur.execute(f"""
-    CREATE INDEX IF NOT EXISTS {new_index}
-        ON {new_communes_table} USING gist
-        (geom);""")
+cur.execute(sql.SQL("""
+    CREATE INDEX IF NOT EXISTS {index}
+        ON {schema}.{table} USING gist (geom);
+        """).format(
+            index=sql.Identifier(new_table['index']),
+            schema=sql.Identifier(new_table['schema']),
+            table=sql.Identifier(new_table['table'])))
 
-# TODO: use f-strings in subsequent queries
-# TODO: use a combination of tab and newline when interacting with the user
-# ? sort & sort(reverse=True) for a query result in psycopg2.
-# ? [].sort() method sorts a list permanently otherwise use the sorted([]) method.
+# todo continue here
+
 indices_table = 'cascade.indices'
 cur.execute(f"""
     CREATE TABLE IF NOT EXISTS {indices_table} (
@@ -135,7 +156,7 @@ def expandB(lst):
 
 for i in range(1, count[0]+1):
     cur.execute(f"""
-        INSERT INTO {new_communes_table}
+        INSERT INTO {new_table}
         select
             c.c_code,
             c.geom
