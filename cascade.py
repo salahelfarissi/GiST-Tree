@@ -1,28 +1,55 @@
 import psycopg2
 from psycopg2 import sql
 
-# * Connect to an existing database
 psql = {
     'host': 'localhost',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
 
-conn = psycopg2.psql(f"""
+conn = psycopg2.connect(f"""
     host={psql['host']}
     dbname={psql['dbname']}
     password={psql['password']}
     """)
 
-# * Open a cursor to perform database operations
 cur = conn.cursor()
 
-# * dict
+table = {
+    'schema': 'maroc',
+    'table': 'communes'
+}
+
 new_table = {
     'schema': 'cascade',
     'table': 'communes',
     'index': 'new_communes_geom_idx'
 }
+
+indices = {
+    'schema': new_table['schema'],
+    'table': 'indices'
+}
+
+
+def extractDigits(lst):
+    res = []
+    for el in lst:
+        sub = el.split(', ')
+        res.append(sub)
+
+    return(res)
+
+
+def expandB(lst):
+    tmp = list(lst)
+    tmp = tmp[0].splitlines()
+    for e in range(len(tmp)):
+        tmp[e] = " ".join(tmp[e].split())
+    tmp = extractDigits(tmp)
+
+    return(tmp)
+
 
 cur.execute(sql.SQL("""
     CREATE SCHEMA IF NOT EXISTS {schema};
@@ -51,18 +78,21 @@ cur.execute(sql.SQL("""
             schema=sql.Identifier(new_table['schema']),
             table=sql.Identifier(new_table['table'])))
 
-# todo continue here
+cur.execute(sql.SQL("""
+    CREATE TABLE IF NOT EXISTS {schema}.{table} (
+        idx_oid serial primary key,
+        idx_name varchar);
+        """).format(
+            schema=sql.Identifier(indices['schema']),
+            table=sql.Identifier(indices['table'])))
 
-indices_table = 'cascade.indices'
-cur.execute(f"""
-    CREATE TABLE IF NOT EXISTS {indices_table} (
-    idx_oid serial primary key,
-    idx_name varchar);
-    """)
+cur.execute(sql.SQL("""TRUNCATE TABLE {schema}.{table};
+""").format(
+    schema=sql.Identifier(indices['schema']),
+    table=sql.Identifier(indices['table'])))
 
-cur.execute(f"TRUNCATE TABLE {indices_table};")
-
-cur.execute(f"""INSERT INTO {indices_table}
+cur.execute(sql.SQL("""
+    INSERT INTO {schema}.{table}
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
@@ -87,15 +117,22 @@ cur.execute(f"""INSERT INTO {indices_table}
                 FROM gt_name)
             AND pg_class.oid = pg_index.indrelid
             AND indisunique != 't'
-            AND indisprimary != 't' ))""")
+            AND indisprimary != 't' ));
+            """).format(
+    schema=sql.Identifier(indices['schema']),
+    table=sql.Identifier(indices['table'])))
 
-# * index of the cascade table
-cur.execute(f"""
-    SELECT * FROM {indices_table}
-    WHERE idx_name = 'com_cas_geom_idx';""")
-index = cur.fetchone()
+cur.execute(sql.SQL("""
+    SELECT idx_oid FROM {schema}.{table}
+    WHERE idx_name = %s;
+    """).format(
+    schema=sql.Identifier(indices['schema']),
+    table=sql.Identifier(indices['table'])),
+    [new_table['index']])
 
-cur.execute(f"""
+new_table['idx_oid'] = cur.fetchone()[0]
+
+cur.execute(sql.SQL("""
     SELECT
         CASE
             WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
@@ -103,72 +140,61 @@ cur.execute(f"""
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM cascade.indices
+	    SELECT tablename FROM {schema}.{table}
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = {index[0]});
-    """)
-g_type = cur.fetchone()
+	    WHERE idx_oid::integer = %s);
+    """).format(
+    schema=sql.Identifier(indices['schema']),
+    table=sql.Identifier(indices['table'])),
+    [new_table['idx_oid']])
 
-cur.execute(f"""SELECT
+new_table['type'] = cur.fetchone()[0]
+
+cur.execute(sql.SQL("""
+    SELECT
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM cascade.indices
+	    SELECT tablename FROM {schema}.{table}
 	    JOIN pg_indexes
         ON idx_name = indexname
-	    WHERE idx_oid::integer = {index[0]});
-    """)
-g_srid = cur.fetchone()
+	    WHERE idx_oid::integer = %s);
+    """).format(
+    schema=sql.Identifier(indices['schema']),
+    table=sql.Identifier(indices['table'])),
+    [new_table['idx_oid']])
 
-# * existing communes table
-communes_table = 'maroc.communes'
+new_table['srid'] = cur.fetchone()[0]
 
-cur.execute(f"""
-    CREATE OR REPLACE FUNCTION num_geom() RETURNS INTEGER as $$
-        select count(*) from {communes_table};
-    $$ LANGUAGE SQL;
-    """)
+cur.execute(sql.SQL("""
+    SELECT COUNT(*) FROM {schema}.{table};
+    """).format(
+    schema=sql.Identifier(table['schema']),
+    table=sql.Identifier(table['table'])))
 
+table['tuples'] = cur.fetchone()[0]
 
-cur.execute("SELECT num_geom();")
-count = cur.fetchone()
-
-
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
-
-    return(res)
-
-
-def expandB(lst):
-    tmp = list(lst)
-    tmp = tmp[0].splitlines()
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    tmp = extractDigits(tmp)
-
-    return(tmp)
-
-
-for i in range(1, count[0]+1):
-    cur.execute(f"""
-        INSERT INTO {new_table}
-        select
+for i in range(1, table['tuples']+1):
+    cur.execute(sql.SQL("""
+        INSERT INTO {schema}.{table}
+        SELECT
             c.c_code,
             c.geom
-        from maroc.communes c
-        order by c.geom <-> (
-            select geom from maroc.communes
-            where c_nom = 'Lagouira')
-        limit 1
-        offset {i-1};
-        """)
+        FROM {new_schema}.{new_table} c
+        ORDER by c.geom <-> (
+            SELECT geom FROM {new_schema}.{new_table}
+            WHERE c_nom = 'Lagouira')
+        LIMIT 1
+        OFFSET %s;
+        """).format(
+        schema=sql.Identifier(new_table['schema']),
+        table=sql.Identifier(new_table['table']),
+        new_schema=sql.Identifier(table['schema']),
+        new_table=sql.Identifier(table['table'])),
+        [i-1])
 
-    cur.execute(f"SELECT gist_stat({index[0]});")
+    cur.execute(f"SELECT gist_stat({new_table['idx_oid']});")
     stats = cur.fetchone()
 
     print(stats[0])
@@ -202,7 +228,7 @@ for i in range(1, count[0]+1):
                 CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
                 schema=sql.Identifier(relation['schema']),
                 table=sql.Identifier(relation['table'])),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.{table}
@@ -210,7 +236,7 @@ for i in range(1, count[0]+1):
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(relation['schema']),
                 table=sql.Identifier(relation['table'])),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             cur.execute(sql.SQL("""
                 CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
@@ -218,7 +244,7 @@ for i in range(1, count[0]+1):
                 """).format(
                 schema=sql.Identifier(relation['schema'])
             ),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 TRUNCATE TABLE {schema}.r_tree_l2""").format(
@@ -229,7 +255,7 @@ for i in range(1, count[0]+1):
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(relation['schema'])),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             conn.commit()
 
@@ -260,7 +286,7 @@ for i in range(1, count[0]+1):
                 CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
                 schema=sql.Identifier(relation['schema']),
                 table=sql.Identifier(relation['table'])),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.{table}
@@ -268,7 +294,7 @@ for i in range(1, count[0]+1):
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(relation['schema']),
                 table=sql.Identifier(relation['table'])),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             cur.execute(sql.SQL("""
                 CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
@@ -276,7 +302,7 @@ for i in range(1, count[0]+1):
                 """).format(
                 schema=sql.Identifier(relation['schema'])
             ),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 TRUNCATE TABLE {schema}.r_tree_l2""").format(
@@ -287,7 +313,7 @@ for i in range(1, count[0]+1):
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(relation['schema'])),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             conn.commit()
 
@@ -316,7 +342,7 @@ for i in range(1, count[0]+1):
                 CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
                 schema=sql.Identifier(schema),
                 table=sql.Identifier(table)),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.{table}
@@ -324,7 +350,7 @@ for i in range(1, count[0]+1):
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(schema),
                 table=sql.Identifier(table)),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             cur.execute(sql.SQL("""
                 CREATE TABLE IF NOT EXISTS {schema}.r_tree_l1 (
@@ -332,7 +358,7 @@ for i in range(1, count[0]+1):
                 """).format(
                 schema=sql.Identifier(schema)
             ),
-                [g_type[0], g_srid[0]])
+                [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 TRUNCATE TABLE {schema}.r_tree_l1""").format(
@@ -343,7 +369,7 @@ for i in range(1, count[0]+1):
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
                 schema=sql.Identifier(schema)),
-                [g_srid[0], index[0], l])
+                [new_table['srid'], new_table['idx_oid'], l])
 
             conn.commit()
 
