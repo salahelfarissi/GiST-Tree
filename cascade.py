@@ -66,6 +66,7 @@ new_table['idx_oid'] = index(
     indices['schema'], indices['table'], new_table['index'])
 
 # * Retrieve type and srid
+# * type is used by Python
 new_table['type'] = g_type(
     indices['schema'], indices['table'], new_table['idx_oid'])
 
@@ -289,3 +290,6 @@ cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 cur.close()
 conn.close()
+
+# (C) Copyright 2021 by Abdane & El Farissi and
+# Pr Hajji Hicham. All Rights Reserved.
