@@ -1,19 +1,12 @@
-import psycopg2
-from psycopg2 import sql
+from psycopg2 import sql, connect
+from functions import *
 
+# * Define variables
 psql = {
     'host': 'localhost',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
-
-conn = psycopg2.connect(f"""
-    host={psql['host']}
-    dbname={psql['dbname']}
-    password={psql['password']}
-    """)
-
-cur = conn.cursor()
 
 table = {
     'schema': 'maroc',
@@ -31,26 +24,16 @@ indices = {
     'table': 'indices'
 }
 
+# * Connect to PostgeSQL
+conn = connect(f"""
+    host={psql['host']}
+    dbname={psql['dbname']}
+    password={psql['password']}
+    """)
 
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
+cur = conn.cursor()
 
-    return(res)
-
-
-def expandB(lst):
-    tmp = list(lst)
-    tmp = tmp[0].splitlines()
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    tmp = extractDigits(tmp)
-
-    return(tmp)
-
-
+# * Create a new table
 cur.execute(sql.SQL("""
     CREATE SCHEMA IF NOT EXISTS {schema};
     """).format(
@@ -78,102 +61,21 @@ cur.execute(sql.SQL("""
             schema=sql.Identifier(new_table['schema']),
             table=sql.Identifier(new_table['table'])))
 
-cur.execute(sql.SQL("""
-    CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        idx_oid serial primary key,
-        idx_name varchar);
-        """).format(
-            schema=sql.Identifier(indices['schema']),
-            table=sql.Identifier(indices['table'])))
+# * Retrieve the index identifier of the new table
+new_table['idx_oid'] = index(
+    indices['schema'], indices['table'], new_table['index'])
 
-cur.execute(sql.SQL("""TRUNCATE TABLE {schema}.{table};
-""").format(
-    schema=sql.Identifier(indices['schema']),
-    table=sql.Identifier(indices['table'])))
+# * Retrieve type and srid
+new_table['type'] = g_type(
+    indices['schema'], indices['table'], new_table['idx_oid'])
 
-cur.execute(sql.SQL("""
-    INSERT INTO {schema}.{table}
-    WITH gt_name AS (
-        SELECT
-            f_table_name AS t_name
-        FROM geometry_columns
-    )
-    SELECT
-        CAST(c.oid AS INTEGER),
-        c.relname
-    FROM pg_class c, pg_index i
-    WHERE c.oid = i.indexrelid
-    AND c.relname IN (
-        SELECT
-            relname
-        FROM pg_class, pg_index
-        WHERE pg_class.oid = pg_index.indexrelid
-        AND pg_class.oid IN (
-            SELECT
-                indexrelid
-            FROM pg_index, pg_class
-            WHERE pg_class.relname IN (
-                SELECT t_name
-                FROM gt_name)
-            AND pg_class.oid = pg_index.indrelid
-            AND indisunique != 't'
-            AND indisprimary != 't' ));
-            """).format(
-    schema=sql.Identifier(indices['schema']),
-    table=sql.Identifier(indices['table'])))
+new_table['srid'] = g_srid(
+    indices['schema'], indices['table'], new_table['idx_oid'])
 
-cur.execute(sql.SQL("""
-    SELECT idx_oid FROM {schema}.{table}
-    WHERE idx_name = %s;
-    """).format(
-    schema=sql.Identifier(indices['schema']),
-    table=sql.Identifier(indices['table'])),
-    [new_table['index']])
+# * Number of rows (geometries)
+table['tuples'] = count(
+    table['schema'], table['table'])
 
-new_table['idx_oid'] = cur.fetchone()[0]
-
-cur.execute(sql.SQL("""
-    SELECT
-        CASE
-            WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
-            ELSE type
-        END AS type
-    FROM geometry_columns
-    WHERE f_table_name IN (
-	    SELECT tablename FROM {schema}.{table}
-	    JOIN pg_indexes
-        ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
-    """).format(
-    schema=sql.Identifier(indices['schema']),
-    table=sql.Identifier(indices['table'])),
-    [new_table['idx_oid']])
-
-new_table['type'] = cur.fetchone()[0]
-
-cur.execute(sql.SQL("""
-    SELECT
-        srid
-    FROM geometry_columns
-    WHERE f_table_name IN (
-	    SELECT tablename FROM {schema}.{table}
-	    JOIN pg_indexes
-        ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
-    """).format(
-    schema=sql.Identifier(indices['schema']),
-    table=sql.Identifier(indices['table'])),
-    [new_table['idx_oid']])
-
-new_table['srid'] = cur.fetchone()[0]
-
-cur.execute(sql.SQL("""
-    SELECT COUNT(*) FROM {schema}.{table};
-    """).format(
-    schema=sql.Identifier(table['schema']),
-    table=sql.Identifier(table['table'])))
-
-table['tuples'] = cur.fetchone()[0]
 
 for i in range(1, table['tuples']+1):
     cur.execute(sql.SQL("""
