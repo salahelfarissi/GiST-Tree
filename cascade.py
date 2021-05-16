@@ -1,6 +1,8 @@
 from psycopg2 import sql, connect
 from functions import *
 
+# TODO: use prompt +="\n..."#
+
 # * Define variables
 psql = {
     'host': 'localhost',
