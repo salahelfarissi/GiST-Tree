@@ -5,7 +5,7 @@ import csv
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
 conn = psycopg2.connect("""
-    host=192.168.1.107
+    host=192.168.1.100
     dbname=mono
     password='%D2a3#PsT'
     """)
@@ -171,7 +171,7 @@ df.drop('occupied', inplace=True, axis=1)
 df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
 
 df.rename(columns={'page': 'node', 'level': 'level', 'blk': 'block', 'tuple': 'num_tuples',
-          'free(Bytes)': 'free_space(bytes)', 'occupied(%)': 'occupied_space(%)'}, inplace=True)
+                   'free(Bytes)': 'free_space(bytes)', 'occupied(%)': 'occupied_space(%)'}, inplace=True)
 
 df.to_csv('tree.csv', index=False)
 

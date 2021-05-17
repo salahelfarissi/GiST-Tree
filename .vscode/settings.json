@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/elfarissi/anaconda3/bin/python",
+    "python.pythonPath": "/bin/python3",
     "sqltools.connections": [
         {
             "previewLimit": 50,
