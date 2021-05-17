@@ -4,3 +4,4 @@ cascade.qgz
 *.csv
 tree.csv
 *.pyc
+*.sql
