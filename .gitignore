@@ -3,3 +3,4 @@ cascade.qgz
 *.rar
 *.csv
 tree.csv
+*.pyc
