@@ -5,7 +5,7 @@ from functions import *
 
 # * Define variables
 psql = {
-    'host': 'localhost',
+    'host': '192.168.1.100',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
@@ -81,6 +81,7 @@ table['tuples'] = count(
 
 
 for i in range(1, table['tuples']+1):
+
     cur.execute(sql.SQL("""
         INSERT INTO {schema}.{table}
         SELECT
@@ -107,6 +108,12 @@ for i in range(1, table['tuples']+1):
     stats = expandB(stats)
 
     stats = [sub.split(': ') for subl in stats for sub in subl]
+
+    if int(stats[3][1]) in list(range(100, table['tuples'] + 1, 100)):
+        prompt = f'You have inserted {i} tuples.'
+        prompt += '\nPress Enter to continue.'
+
+        _prompt = input(prompt)
 
     level = int(stats[0][1])
 
@@ -232,48 +239,51 @@ for i in range(1, table['tuples']+1):
 
         else:
 
-            schema = 'level_'+str(l)
-            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
+            relation = {
+                'schema': 'level_'+str(l),
+                'table': 'tree_l'+str(l)+'_'+str(i)
+            }
 
-            table = 'tree_l'+str(l)+'_'+str(i)
+            cur.execute(
+                f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
+
             cur.execute(sql.SQL("""
                 DROP TABLE IF EXISTS {schema}.{table};
                     """).format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
-                [schema])
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])))
 
             cur.execute(sql.SQL("""
                 CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
                 [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.{table}
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(schema),
-                table=sql.Identifier(table)),
+                schema=sql.Identifier(relation['schema']),
+                table=sql.Identifier(relation['table'])),
                 [new_table['srid'], new_table['idx_oid'], l])
 
             cur.execute(sql.SQL("""
                 CREATE TABLE IF NOT EXISTS {schema}.r_tree_l1 (
                     geom geometry(%s, %s));
                 """).format(
-                schema=sql.Identifier(schema)
+                schema=sql.Identifier(relation['schema'])
             ),
                 [new_table['type'], new_table['srid']])
 
             cur.execute(sql.SQL("""
                 TRUNCATE TABLE {schema}.r_tree_l1""").format(
-                schema=sql.Identifier(schema)))
+                schema=sql.Identifier(relation['schema'])))
 
             cur.execute(sql.SQL("""
                 INSERT INTO {schema}.r_tree_l1
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
                 FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(schema)),
+                schema=sql.Identifier(relation['schema'])),
                 [new_table['srid'], new_table['idx_oid'], l])
 
             conn.commit()
@@ -282,7 +292,7 @@ for i in range(1, table['tuples']+1):
 
             cur.execute(sql.SQL("""
                 VACUUM ANALYZE {schema}.r_tree_l1;""").format(
-                schema=sql.Identifier(schema)))
+                schema=sql.Identifier(relation['schema'])))
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
