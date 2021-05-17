@@ -2,10 +2,12 @@ from psycopg2 import sql, connect
 from functions import *
 
 # TODO: use prompt +="\n..."#
+# ? python ---.py
+# ? change ip address
 
 # * Define variables
 psql = {
-    'host': '192.168.1.100',
+    'host': '192.168.1.105',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
