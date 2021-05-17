@@ -181,6 +181,8 @@ for i in range(1, table['tuples']+1):
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
+            continue
+
         elif l == 1:
 
             relation = {
@@ -238,6 +240,8 @@ for i in range(1, table['tuples']+1):
                 schema=sql.Identifier(relation['schema'])))
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
+
+            continue
 
         else:
 
@@ -305,5 +309,5 @@ cur.execute("NOTIFY qgis, 'refresh qgis';")
 cur.close()
 conn.close()
 
-# (C) Copyright 2021 by Abdane & El Farissi and
+# (C) Copyright 2021 by Abdane & El Farissi
 # Pr Hajji Hicham. All Rights Reserved.
