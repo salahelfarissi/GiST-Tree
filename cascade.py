@@ -111,6 +111,8 @@ for i in range(1, table['tuples']+1):
 
     stats = [sub.split(': ') for subl in stats for sub in subl]
 
+    # TODO: input should be assigned to a variable since the user can enter other value
+    # TODO: use try except code block to handle errors
     if int(stats[3][1]) in list(range(100, table['tuples'] + 1, 100)):
         prompt = f'You have inserted {i} tuples.'
         prompt += '\nPress Enter to continue.'
