@@ -115,7 +115,7 @@ for i in range(1, table['tuples']+1):
         prompt = f'You have inserted {i} tuples.'
         prompt += '\nPress Enter to continue.'
 
-        _prompt = input(prompt)
+        input(prompt)
 
     level = int(stats[0][1])
 
