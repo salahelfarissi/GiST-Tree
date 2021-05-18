@@ -1,7 +1,2 @@
 .vscode/
-*.rar
-*.csv
-tree.csv
-*.pyc
-*.sql
 __pycache__/
