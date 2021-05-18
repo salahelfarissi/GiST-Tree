@@ -1,7 +1,7 @@
 .vscode/launch.json
-cascade.qgz
 *.rar
 *.csv
 tree.csv
 *.pyc
 *.sql
+__pycache__/*
