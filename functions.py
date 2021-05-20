@@ -1,7 +1,7 @@
 from psycopg2 import sql, connect
 
 psql = {
-    'host': '192.168.1.105',
+    'host': '192.168.1.100',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
