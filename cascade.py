@@ -116,7 +116,7 @@ for i in range(1, table['tuples']+1):
         gist_stat[e] = " ".join(gist_stat[i].split())
         stat.append(gist_stat[e].split(', '))
 
-    print(stat)
+    stat = [sub.split(': ') for subl in stat for sub in subl]
 
     level = int(stat[0][1])
 
