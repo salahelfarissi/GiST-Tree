@@ -2,7 +2,7 @@ import psycopg2
 
 # Connect to db
 conn = psycopg2.connect("""
-    host=localhost
+    host=192.168.1.100
     dbname=mono
     user=elfarissi
     password='%D2a3#PsT'
@@ -30,11 +30,11 @@ cur.execute("""
 cur.execute("SELECT count(*) FROM maroc.communes;")
 count = cur.fetchone()
 
-# for i in range(1, count[0]+1):
-#     table_name = 'level_1.tree_l1_'+str(i)
-#     cur.execute("""
-#         DROP TABLE IF EXISTS %s;
-#         """ % table_name)
+for i in range(1, count[0]+1):
+    table_name = 'level_1.tree_l1_'+str(i)
+    cur.execute("""
+        DROP TABLE IF EXISTS %s;
+        """ % table_name)
 
 for i in range(1, count[0]+1):
     table_name = 'level_2.tree_l2_'+str(i)
