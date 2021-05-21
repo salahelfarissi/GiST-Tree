@@ -113,7 +113,7 @@ for i in range(1, table['tuples']+1):
         else:
             for e in range(100, table['tuples'] + 1, 100):
                 if int(gist_stat[3][1]) == e:
-                    prompt = f'You have inserted {int(gist_stat[31])} tuples.'
+                    prompt = f'You have inserted {int(gist_stat[3][1])} tuples.'
                     prompt += '\nPress Enter to continue.'
                     input(prompt)
         break
