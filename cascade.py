@@ -99,23 +99,23 @@ for i in range(1, table['tuples']+1):
         [i-1])
 
     cur.execute(f"SELECT gist_stat({new_table['idx_oid']});")
-    stats = cur.fetchone()
+    gist_stat = cur.fetchone()
 
-    print(stats[0])
+    print(gist_stat[0])
 
-    stats = expandB(stats)
+    gist_stat = expandB(gist_stat)
 
-    stats = [sub.split(': ') for subl in stats for sub in subl]
+    print(gist_stat)
 
     # TODO: input should be assigned to a variable since the user can enter other value
     # TODO: use try except code block to handle errors
-    if int(stats[3][1]) in list(range(100, table['tuples'] + 1, 100)):
+    if int(gist_stat[3][1]) in list(range(100, table['tuples'] + 1, 100)):
         prompt = f'You have inserted {i} tuples.'
         prompt += '\nPress Enter to continue.'
 
         input(prompt)
 
-    level = int(stats[0][1])
+    level = int(gist_stat[0][1])
 
     level = [value for value in range(1, level+1)]
 

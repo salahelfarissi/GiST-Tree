@@ -30,6 +30,7 @@ def expandB(lst):
     for e in range(len(tmp)):
         tmp[e] = " ".join(tmp[e].split())
     tmp = extractDigits(tmp)
+    tmp = [sub.split(': ') for subl in tmp for sub in subl]
 
     return(tmp)
 
