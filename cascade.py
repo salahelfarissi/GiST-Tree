@@ -79,7 +79,6 @@ table['tuples'] = count(
 
 
 for i in range(1, table['tuples']+1):
-
     cur.execute(sql.SQL("""
         INSERT INTO {schema}.{table}
         SELECT
@@ -99,23 +98,27 @@ for i in range(1, table['tuples']+1):
         [i-1])
 
     cur.execute(f"SELECT gist_stat({new_table['idx_oid']});")
-    stats = cur.fetchone()
+    gist_stat = list(cur.fetchone())
 
-    print(stats[0])
+    print(gist_stat[0])
 
-    stats = expandB(stats)
+    # * gist_stat is a list of one string that contains newline characters
+    # ? ['...\n...\n...']
 
-    stats = [sub.split(': ') for subl in stats for sub in subl]
+    # * split the string on the newline characters (a string for each line)
+    # ? ['...', '...', ...]
+    gist_stat = gist_stat[0].splitlines()
 
-    # TODO: input should be assigned to a variable since the user can enter other value
-    # TODO: use try except code block to handle errors
-    if int(stats[3][1]) in list(range(100, table['tuples'] + 1, 100)):
-        prompt = f'You have inserted {i} tuples.'
-        prompt += '\nPress Enter to continue.'
+    # * remove whitespace from each string
+    for i in range(len(gist_stat)):
+        gist_stat[i] = " ".join(gist_stat[i].split())
 
-        input(prompt)
+    stat = []
 
-    level = int(stats[0][1])
+    for e in gist_stat:
+        stat.append(e.split(': '))
+
+    level = int(stat[0][1])
 
     level = [value for value in range(1, level+1)]
 

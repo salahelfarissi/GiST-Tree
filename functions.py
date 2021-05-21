@@ -15,25 +15,6 @@ password={psql['password']}
 cur = conn.cursor()
 
 
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
-
-    return(res)
-
-
-def expandB(lst):
-    tmp = list(lst)
-    tmp = tmp[0].splitlines()
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    tmp = extractDigits(tmp)
-
-    return(tmp)
-
-
 def index(arg1, arg2, arg3):
     # * GiST indices of spatial tables
     cur.execute(sql.SQL("""
