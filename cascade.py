@@ -109,14 +109,14 @@ for i in range(1, table['tuples']+1):
     # ? ['...', '...', ...]
     gist_stat = gist_stat[0].splitlines()
 
-    # * remove whitespace from each string
-    for i in range(len(gist_stat)):
-        gist_stat[i] = " ".join(gist_stat[i].split())
-
     stat = []
 
-    for e in gist_stat:
-        stat.append(e.split(': '))
+    # * remove whitespace from each string
+    for e in range(len(gist_stat)):
+        gist_stat[e] = " ".join(gist_stat[i].split())
+        stat.append(gist_stat[e].split(', '))
+
+    print(stat)
 
     level = int(stat[0][1])
 
