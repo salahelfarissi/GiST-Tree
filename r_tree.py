@@ -2,36 +2,26 @@ import psycopg2
 import pandas as pd
 import csv
 
-# * Connect to an existing database
-# ! Host ip changes for virtual machines
 conn = psycopg2.connect("""
     host=192.168.1.105
     dbname=mono
     password='%D2a3#PsT'
     """)
 
-# * Open a cursor to perform database operations
 cur = conn.cursor()
 
-# ? Output postgis functions in a seperate schema called postgis
 cur.execute("CREATE SCHEMA IF NOT EXISTS postgis;")
 
 cur.execute("""
     CREATE EXTENSION IF NOT EXISTS postgis
     SCHEMA postgis;""")
 
-# ? Output gevel_ext functions in a seperate schema called gevel
-# * gist_stat(INDEXNAME) - show some statistics about GiST tree
-# * gist_tree(INDEXNAME,MAXLEVEL) - show GiST tree up to MAXLEVEL
-# * gist_tree(INDEXNAME) - show full GiST tree
-# * gist_print(INDEXNAME) - prints objects stored in GiST tree
 cur.execute("CREATE SCHEMA IF NOT EXISTS gevel;")
 
 cur.execute("""
     CREATE EXTENSION IF NOT EXISTS gevel_ext
     SCHEMA gevel;""")
 
-# ? Output stored GiST indices
 cur.execute("CREATE SCHEMA IF NOT EXISTS r_tree;")
 cur.execute("""
     CREATE TABLE IF NOT EXISTS r_tree.indices (
@@ -114,7 +104,7 @@ stats = cur.fetchone()
 print(stats[0])
 
 
-def extractDigits(lst):  # ? this function is used by expandB()
+def extractDigits(lst):
     res = []
     for el in lst:
         sub = el.split(', ')
