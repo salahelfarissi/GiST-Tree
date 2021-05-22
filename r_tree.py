@@ -5,7 +5,7 @@ import csv
 # * Connect to an existing database
 # ! Host ip changes for virtual machines
 conn = psycopg2.connect("""
-    host=192.168.1.100
+    host=192.168.1.105
     dbname=mono
     password='%D2a3#PsT'
     """)
