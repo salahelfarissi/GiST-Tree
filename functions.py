@@ -15,6 +15,84 @@ password={psql['password']}
 cur = conn.cursor()
 
 
+def tree(level, tuple):
+    relation = {
+        'schema': 'level_'+str(level+1),
+        'table': 'tree_l'+str(level+1)+'_'+str(tuple)
+    }
+
+    cur.execute(f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
+
+    cur.execute(sql.SQL("""
+    DROP TABLE IF EXISTS {schema}.{table};
+            """).format(
+        schema=sql.Identifier(relation['schema']),
+        table=sql.Identifier(relation['table'])))
+
+    cur.execute(sql.SQL("""
+        CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
+        schema=sql.Identifier(relation['schema']),
+        table=sql.Identifier(relation['table'])),
+        [new_table['type'], new_table['srid']])
+
+    cur.execute(sql.SQL("""
+        INSERT INTO {schema}.{table}
+        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+        schema=sql.Identifier(relation['schema']),
+        table=sql.Identifier(relation['table'])),
+        [new_table['srid'], new_table['idx_oid'], l])
+
+    cur.execute(sql.SQL("""
+        CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
+            geom geometry(%s, %s));
+        """).format(
+        schema=sql.Identifier(relation['schema'])
+    ),
+        [new_table['type'], new_table['srid']])
+
+    cur.execute(sql.SQL("""
+        TRUNCATE TABLE {schema}.r_tree_l2""").format(
+        schema=sql.Identifier(relation['schema'])))
+
+    cur.execute(sql.SQL("""
+        INSERT INTO {schema}.r_tree_l2
+        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
+        schema=sql.Identifier(relation['schema'])),
+        [new_table['srid'], new_table['idx_oid'], l])
+
+    conn.commit()
+
+    cur.execute("END TRANSACTION;")
+
+    cur.execute(sql.SQL("""
+        VACUUM ANALYZE {schema}.r_tree_l2;""").format(
+        schema=sql.Identifier(relation['schema'])))
+
+    cur.execute("NOTIFY qgis, 'refresh qgis';")
+
+
+def extractDigits(lst):
+    res = []
+    for el in lst:
+        sub = el.split(', ')
+        res.append(sub)
+
+    return(res)
+
+
+def expandB(lst):
+    tmp = list(lst)
+    tmp = tmp[0].splitlines()
+    for e in range(len(tmp)):
+        tmp[e] = " ".join(tmp[e].split())
+    tmp = extractDigits(tmp)
+    tmp = [sub.split(': ') for subl in tmp for sub in subl]
+
+    return(tmp)
+
+
 def index(arg1, arg2, arg3):
     # * GiST indices of spatial tables
     cur.execute(sql.SQL("""
