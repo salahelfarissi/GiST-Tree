@@ -3,7 +3,7 @@ from functions import *
 
 # * Define variables
 psql = {
-    'host': '192.168.1.105',
+    'host': '192.168.1.100',
     'dbname': 'mono',
     'password': '%D2a3#PsT'
 }
@@ -79,7 +79,6 @@ table['tuples'] = count(
 
 
 for i in range(1, table['tuples']+1):
-
     cur.execute(sql.SQL("""
         INSERT INTO {schema}.{table}
         SELECT
@@ -99,26 +98,27 @@ for i in range(1, table['tuples']+1):
         [i-1])
 
     cur.execute(f"SELECT gist_stat({new_table['idx_oid']});")
-    gist_stat = cur.fetchone()
+    gist_stat = list(cur.fetchone())
 
     print(gist_stat[0])
 
-    # ? gist_stat is a string
-    # ? expandB fct creates a nested list object that correponds to attributes and their values
-    gist_stat = expandB(gist_stat)
+    # * gist_stat is a list of one string that contains newline characters
+    # ? ['...\n...\n...']
 
-    while 1:
-        if int(gist_stat[3][1]) == table['tuples']:
-            break
-        else:
-            for e in range(100, table['tuples'] + 1, 100):
-                if int(gist_stat[3][1]) == e:
-                    prompt = f'You have inserted {int(gist_stat[3][1])} tuples.'
-                    prompt += '\nPress Enter to continue.'
-                    input(prompt)
-        break
+    # * split the string on the newline characters (a string for each line)
+    # ? ['...', '...', ...]
+    gist_stat = gist_stat[0].splitlines()
 
-    level = int(gist_stat[0][1])
+    # * remove whitespace from each string
+    for i in range(len(gist_stat)):
+        gist_stat[i] = " ".join(gist_stat[i].split())
+
+    stat = []
+
+    for e in gist_stat:
+        stat.append(e.split(': '))
+
+    level = int(stat[0][1])
 
     level = [value for value in range(1, level+1)]
 
