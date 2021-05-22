@@ -1,15 +1,9 @@
 from psycopg2 import sql, connect
 
-psql = {
-    'host': '192.168.1.105',
-    'dbname': 'mono',
-    'user': 'elfarissi'
-}
-
 conn = connect(f"""
-    host={psql['host']}
-    dbname={psql['dbname']}
-    user={psql['user']}
+    host='192.168.1.105'
+    dbname='mono'
+    user='elfarissi'
     """)
 
 cur = conn.cursor()
@@ -161,7 +155,7 @@ for i in range(1, tuples + 1):
 
     level = int(gist_stat[0][1])
 
-    level = [value for value in range(1, level+1)]
+    level = [value for value in range(1, level + 1)]
 
     for l in level:
 
