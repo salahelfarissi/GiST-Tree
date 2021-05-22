@@ -9,82 +9,155 @@ psql = {
 conn = connect(f"""
     host={psql['host']}
     dbname={psql['dbname']}
-    password={psql['password']}
+    user={psql['user']}
     """)
 
 cur = conn.cursor()
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS communes_bbox (
+    CREATE TABLE IF NOT EXISTS communes_knn (
         c_code varchar(32),
         geom geometry(MultiPolygon, 4326));
         """)
 
 cur.execute("""
-    TRUNCATE TABLE communes_bbox;
+    TRUNCATE TABLE communes_knn;
     """)
 
 cur.execute("""
-    CREATE INDEX IF NOT EXISTS communes_bbox_geom_idx
-        ON communes_bbox USING gist (geom);
+    CREATE INDEX IF NOT EXISTS communes_knn_geom_idx
+        ON communes_knn USING gist (geom);
         """)
 
-# * Retrieve the index identifier of the new table
-new_table['idx_oid'] = index(
-    indices['schema'], indices['table'], new_table['index'])
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS indices (
+        idx_oid serial primary key,
+        idx_name varchar);
+        """)
 
-# * Retrieve type and srid
-# * type is used by Python
-new_table['type'] = g_type(
-    indices['schema'], indices['table'], new_table['idx_oid'])
+cur.execute("""
+    TRUNCATE TABLE indices;
+    """)
 
-new_table['srid'] = g_srid(
-    indices['schema'], indices['table'], new_table['idx_oid'])
+cur.execute("""
+    INSERT INTO indices
+    WITH gt_name AS (
+        SELECT
+            f_table_name AS t_name
+        FROM geometry_columns
+    )
+    SELECT
+        CAST(c.oid AS INTEGER),
+        c.relname
+    FROM pg_class c, pg_index i
+    WHERE c.oid = i.indexrelid
+    AND c.relname IN (
+        SELECT
+            relname
+        FROM pg_class, pg_index
+        WHERE pg_class.oid = pg_index.indexrelid
+        AND pg_class.oid IN (
+            SELECT
+                indexrelid
+            FROM pg_index, pg_class
+            WHERE pg_class.relname IN (
+                SELECT t_name
+                FROM gt_name)
+            AND pg_class.oid = pg_index.indrelid
+            AND indisunique != 't'
+            AND indisprimary != 't' ));
+            """)
 
-# * Number of rows (geometries)
-table['tuples'] = count(
-    table['schema'], table['table'])
+cur.execute("""
+    SELECT idx_oid FROM indices
+    WHERE idx_name = 'communes_knn_geom_idx';
+    """)
+
+idx_oid = cur.fetchone()[0]
 
 
-for i in range(1, table['tuples']+1):
+cur.execute("""
+    SELECT
+        CASE
+            WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
+            ELSE type
+        END AS type
+    FROM geometry_columns
+    WHERE f_table_name IN (
+        SELECT tablename FROM indices
+        JOIN pg_indexes
+        ON idx_name = indexname
+        WHERE idx_oid::integer = %s);
+    """,
+            [idx_oid])
 
-    cur.execute(sql.SQL("""
-        INSERT INTO {schema}.{table}
+g_type = cur.fetchone()[0]
+
+
+cur.execute("""
+    SELECT
+        srid
+    FROM geometry_columns
+    WHERE f_table_name IN (
+        SELECT tablename FROM indices
+        JOIN pg_indexes
+        ON idx_name = indexname
+        WHERE idx_oid::integer = %s);
+    """,
+            [idx_oid])
+
+g_srid = cur.fetchone()[0]
+
+
+cur.execute("""
+    SELECT COUNT(*) FROM communes;
+    """)
+
+tuples = cur.fetchone()[0]
+
+
+def extractDigits(lst):
+    res = []
+    for el in lst:
+        sub = el.split(', ')
+        res.append(sub)
+
+    return(res)
+
+
+def expandB(lst):
+    tmp = list(lst)
+    tmp = tmp[0].splitlines()
+    for e in range(len(tmp)):
+        tmp[e] = " ".join(tmp[e].split())
+    tmp = extractDigits(tmp)
+    tmp = [sub.split(': ') for subl in tmp for sub in subl]
+
+    return(tmp)
+
+
+for i in range(1, tuples + 1):
+
+    cur.execute("""
+        INSERT INTO communes_knn
         SELECT
             c.c_code,
             c.geom
-        FROM {new_schema}.{new_table} c
+        FROM communes c
         ORDER by c.geom <-> (
-            SELECT geom FROM {new_schema}.{new_table}
+            SELECT geom FROM communes
             WHERE c_nom = 'Lagouira')
         LIMIT 1
         OFFSET %s;
-        """).format(
-        schema=sql.Identifier(new_table['schema']),
-        table=sql.Identifier(new_table['table']),
-        new_schema=sql.Identifier(table['schema']),
-        new_table=sql.Identifier(table['table'])),
-        [i-1])
+        """,
+                [i - 1])
 
-    cur.execute(f"SELECT gist_stat({new_table['idx_oid']});")
+    cur.execute(f"SELECT gist_stat({idx_oid});")
     gist_stat = cur.fetchone()
 
     print(gist_stat[0])
 
-    # ? gist_stat is a string
-    # ? expandB fct creates a nested list object that correponds to attributes and their values
     gist_stat = expandB(gist_stat)
-
-    while 1:
-        if int(gist_stat[3][1]) == table['tuples']:
-            break
-        else:
-            for e in range(100, table['tuples'] + 1, 100):
-                if int(gist_stat[3][1]) == e:
-                    prompt = f'You have inserted {int(gist_stat[3][1])} tuples.'
-                    prompt += '\nPress Enter to continue.'
-                    input(prompt)
-        break
 
     level = int(gist_stat[0][1])
 
@@ -92,191 +165,66 @@ for i in range(1, table['tuples']+1):
 
     for l in level:
 
-        if len(level) == 1:
+        if len(level) == 1 or l == 1:
 
-            relation = {
-                'schema': 'level_'+str(l+1),
-                'table': 'tree_l'+str(l+1)+'_'+str(i)
-            }
-
-            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
-
-            cur.execute(sql.SQL("""
-                DROP TABLE IF EXISTS {schema}.{table};
-                    """).format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])))
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['type'], new_table['srid']])
-
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.{table}
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['srid'], new_table['idx_oid'], l])
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS r_tree_l2 (
                     geom geometry(%s, %s));
-                """).format(
-                schema=sql.Identifier(relation['schema'])
-            ),
-                [new_table['type'], new_table['srid']])
+                """,
+                        [g_type, g_srid])
 
-            cur.execute(sql.SQL("""
-                TRUNCATE TABLE {schema}.r_tree_l2""").format(
-                schema=sql.Identifier(relation['schema'])))
+            cur.execute("""
+                TRUNCATE TABLE r_tree_l1""")
 
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.r_tree_l2
+            cur.execute("""
+                TRUNCATE TABLE r_tree_l2""")
+
+            cur.execute("""
+                INSERT INTO r_tree_l2
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema'])),
-                [new_table['srid'], new_table['idx_oid'], l])
+                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+                """,
+                        [g_srid, idx_oid, l])
 
             conn.commit()
 
             cur.execute("END TRANSACTION;")
 
-            cur.execute(sql.SQL("""
-                VACUUM ANALYZE {schema}.r_tree_l2;""").format(
-                schema=sql.Identifier(relation['schema'])))
+            cur.execute("""
+                VACUUM ANALYZE r_tree_l1;""")
 
-            cur.execute("NOTIFY qgis, 'refresh qgis';")
-
-            continue
-
-        elif l == 1:
-
-            relation = {
-                'schema': 'level_'+str(l+1),
-                'table': 'tree_l'+str(l+1)+'_'+str(i)
-            }
-
-            cur.execute(f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
-
-            cur.execute(sql.SQL("""
-                DROP TABLE IF EXISTS {schema}.{table};
-                    """).format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])))
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['type'], new_table['srid']])
-
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.{table}
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['srid'], new_table['idx_oid'], l])
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE IF NOT EXISTS {schema}.r_tree_l2 (
-                    geom geometry(%s, %s));
-                """).format(
-                schema=sql.Identifier(relation['schema'])
-            ),
-                [new_table['type'], new_table['srid']])
-
-            cur.execute(sql.SQL("""
-                TRUNCATE TABLE {schema}.r_tree_l2""").format(
-                schema=sql.Identifier(relation['schema'])))
-
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.r_tree_l2
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema'])),
-                [new_table['srid'], new_table['idx_oid'], l])
-
-            conn.commit()
-
-            cur.execute("END TRANSACTION;")
-
-            cur.execute(sql.SQL("""
-                VACUUM ANALYZE {schema}.r_tree_l2;""").format(
-                schema=sql.Identifier(relation['schema'])))
+            cur.execute("""
+                VACUUM ANALYZE r_tree_l2;""")
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
             continue
 
         else:
-
-            relation = {
-                'schema': 'level_'+str(l),
-                'table': 'tree_l'+str(l)+'_'+str(i)
-            }
-
-            cur.execute(
-                f"CREATE SCHEMA IF NOT EXISTS {relation['schema']};")
-
-            cur.execute(sql.SQL("""
-                DROP TABLE IF EXISTS {schema}.{table};
-                    """).format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])))
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE {schema}.{table} (geom geometry (%s, %s));""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['type'], new_table['srid']])
-
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.{table}
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema']),
-                table=sql.Identifier(relation['table'])),
-                [new_table['srid'], new_table['idx_oid'], l])
-
-            cur.execute(sql.SQL("""
-                CREATE TABLE IF NOT EXISTS {schema}.r_tree_l1 (
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS r_tree_l1 (
                     geom geometry(%s, %s));
-                """).format(
-                schema=sql.Identifier(relation['schema'])
-            ),
-                [new_table['type'], new_table['srid']])
+                """,
+                        [g_type, g_srid])
 
-            cur.execute(sql.SQL("""
-                TRUNCATE TABLE {schema}.r_tree_l1""").format(
-                schema=sql.Identifier(relation['schema'])))
+            cur.execute("""
+                TRUNCATE TABLE r_tree_l1""")
 
-            cur.execute(sql.SQL("""
-                INSERT INTO {schema}.r_tree_l1
+            cur.execute("""
+                INSERT INTO r_tree_l1
                 SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq""").format(
-                schema=sql.Identifier(relation['schema'])),
-                [new_table['srid'], new_table['idx_oid'], l])
+                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+                """,
+                        [g_srid, idx_oid, l])
 
             conn.commit()
 
             cur.execute("END TRANSACTION;")
 
-            cur.execute(sql.SQL("""
-                VACUUM ANALYZE {schema}.r_tree_l1;""").format(
-                schema=sql.Identifier(relation['schema'])))
+            cur.execute("""
+                VACUUM ANALYZE r_tree_l1;""")
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
-conn.commit()
-
-cur.execute("NOTIFY qgis, 'refresh qgis';")
-
 cur.close()
 conn.close()
-
-# (C) Copyright 2021 by Abdane & El Farissi
-# Pr Hajji Hicham. All Rights Reserved.
