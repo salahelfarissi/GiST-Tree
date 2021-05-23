@@ -109,7 +109,7 @@ cur.execute("""
 
 tuples = cur.fetchone()[0]
 
-
+# TODO: convert string to int for numeric values
 def string_to_list(st=()):
     lst = list(st)
     lst = lst[0].splitlines()
