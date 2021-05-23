@@ -1,3 +1,4 @@
+# TODO: use public schema only, since it is a public repo
 import psycopg2
 import pandas as pd
 import csv
