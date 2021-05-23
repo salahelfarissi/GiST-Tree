@@ -1,7 +1,7 @@
 from psycopg2 import sql, connect
 
 conn = connect(f"""
-    host='192.168.1.105'
+    host='192.168.1.108'
     dbname='mono'
     user='elfarissi'
     """)
@@ -110,24 +110,14 @@ cur.execute("""
 tuples = cur.fetchone()[0]
 
 
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
+def string_to_list(st=()):
+    lst = list(st)
+    lst = lst[0].splitlines()
+    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
+    lst = [el.split(', ') for el in lst]
+    lst = [sub.split(': ') for subl in lst for sub in subl]
 
-    return(res)
-
-
-def expandB(lst):
-    tmp = list(lst)
-    tmp = tmp[0].splitlines()
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    tmp = extractDigits(tmp)
-    tmp = [sub.split(': ') for subl in tmp for sub in subl]
-
-    return(tmp)
+    return(lst)
 
 
 for i in range(1, tuples + 1):
@@ -151,7 +141,7 @@ for i in range(1, tuples + 1):
 
     print(gist_stat[0])
 
-    gist_stat = expandB(gist_stat)
+    gist_stat = string_to_list(gist_stat)
 
     level = int(gist_stat[0][1])
 
