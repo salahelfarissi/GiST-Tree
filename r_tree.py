@@ -97,14 +97,22 @@ cur.execute("""
 g_srid = cur.fetchone()
 
 
-def string_to_list(st=()):
-    lst = list(st)
-    lst = lst[0].splitlines()
+def tuple_to_dict(st=()):
+    lst = list(st)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
     lst = [[el] for el in lst]
     lst = [sub.split(': ') for subl in lst for sub in subl]
 
-    return(lst)
+    key = [i[0] for i in lst]
+    value = [i[1] for i in lst]
+
+    for i in range(len(value)):
+        value[i] = value[i].replace(' bytes', '')
+        value[i] = int(value[i])
+
+    dct = {key[i]: value[i] for i in range(len(key))}
+
+    return(dct)
 
 
 print("\nStatistics")
@@ -114,15 +122,9 @@ stat = cur.fetchone()
 
 print(stat[0])
 
-stat = string_to_list(stat)
+stat = tuple_to_dict(stat)
 
-key = [i[0] for i in stat]
-value = [i[1] for i in stat]
-
-for i in range(6):
-    value[i] = int(value[i])
-
-print(f"Number of levels → {value[0]}\n")
+print(f"Number of levels → {stat['Number of levels']}\n")
 level = int(input("Level to visualize \n↳ "))
 
 cur.execute("""

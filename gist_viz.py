@@ -112,14 +112,22 @@ tuples = cur.fetchone()[0]
 # TODO: convert string to int for numeric values
 
 
-def string_to_list(st=()):
-    lst = list(st)
-    lst = lst[0].splitlines()
+def tuple_to_dict(st=()):
+    lst = list(st)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
     lst = [[el] for el in lst]
     lst = [sub.split(': ') for subl in lst for sub in subl]
 
-    return(lst)
+    key = [i[0] for i in lst]
+    value = [i[1] for i in lst]
+
+    for i in range(len(value)):
+        value[i] = value[i].replace(' bytes', '')
+        value[i] = int(value[i])
+
+    dct = {key[i]: value[i] for i in range(len(key))}
+
+    return(dct)
 
 
 for i in range(1, tuples + 1):
@@ -143,15 +151,10 @@ for i in range(1, tuples + 1):
 
     print(stat[0])
 
-    stat = string_to_list(stat)
-
-    key = [i[0] for i in stat]
-    value = [i[1] for i in stat]
-    for i in range(6):
-        value[i] = int(value[i])
+    stat = tuple_to_dict(stat)
 
     # ? Number of levels
-    level = value[0]
+    level = stat['Number of levels']
 
     level = [value for value in range(1, level + 1)]
 
