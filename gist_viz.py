@@ -1,7 +1,7 @@
 from psycopg2 import sql, connect
 
 conn = connect(f"""
-    host='192.168.1.108'
+    host='192.168.1.104'
     dbname='mono'
     user='elfarissi'
     """)
@@ -110,11 +110,13 @@ cur.execute("""
 tuples = cur.fetchone()[0]
 
 # TODO: convert string to int for numeric values
+
+
 def string_to_list(st=()):
     lst = list(st)
     lst = lst[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
-    lst = [el.split(', ') for el in lst]
+    lst = [[el] for el in lst]
     lst = [sub.split(': ') for subl in lst for sub in subl]
 
     return(lst)
@@ -137,13 +139,19 @@ for i in range(1, tuples + 1):
                 [i - 1])
 
     cur.execute(f"SELECT gist_stat({idx_oid});")
-    gist_stat = cur.fetchone()
+    stat = cur.fetchone()
 
-    print(gist_stat[0])
+    print(stat[0])
 
-    gist_stat = string_to_list(gist_stat)
+    stat = string_to_list(stat)
 
-    level = int(gist_stat[0][1])
+    key = [i[0] for i in stat]
+    value = [i[1] for i in stat]
+    for i in range(6):
+        value[i] = int(value[i])
+
+    # ? Number of levels
+    level = value[0]
 
     level = [value for value in range(1, level + 1)]
 
