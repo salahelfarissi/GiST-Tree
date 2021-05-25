@@ -1,6 +1,6 @@
 from psycopg2 import sql, connect
 
-conn = connect(f"""
+conn = connect("""
     host='192.168.1.104'
     dbname='mono'
     user='elfarissi'

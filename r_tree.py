@@ -1,36 +1,29 @@
-# TODO: use public schema only, since it is a public repo
 import psycopg2
-import pandas as pd
-import csv
 
 conn = psycopg2.connect("""
-    host=192.168.1.105
+    host=192.168.1.104
     dbname=mono
     password='%D2a3#PsT'
     """)
 
 cur = conn.cursor()
 
-cur.execute("CREATE SCHEMA IF NOT EXISTS postgis;")
+cur.execute("""
+    CREATE SCHEMA IF NOT EXISTS gist;
+    """)
 
 cur.execute("""
-    CREATE EXTENSION IF NOT EXISTS postgis
-    SCHEMA postgis;""")
-
-cur.execute("CREATE SCHEMA IF NOT EXISTS gevel;")
-
-cur.execute("""
-    CREATE EXTENSION IF NOT EXISTS gevel_ext
-    SCHEMA gevel;""")
-
-cur.execute("CREATE SCHEMA IF NOT EXISTS r_tree;")
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS r_tree.indices (
+    CREATE TABLE IF NOT EXISTS indices (
         idx_oid serial primary key, 
-        idx_name varchar);""")
-cur.execute("TRUNCATE TABLE r_tree.indices;")
+        idx_name varchar);
+        """)
+
 cur.execute("""
-    INSERT INTO r_tree.indices
+    TRUNCATE TABLE indices;
+    """)
+
+cur.execute("""
+    INSERT INTO indices
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
@@ -55,19 +48,22 @@ cur.execute("""
                 FROM gt_name)
             AND pg_class.oid = pg_index.indrelid
             AND indisunique != 't'
-            AND indisprimary != 't' ))""")
+            AND indisprimary != 't' ));
+            """)
 
-cur.execute("SELECT * FROM r_tree.indices;")
+cur.execute("""
+    SELECT * FROM indices;
+    """)
 
 indices = cur.fetchall()
 
-print("\nList of GiST indices\n")
+print('\nList of GiST indices')
 
 for i in indices:
-    print(f"Index: {i[1]}")
-    print(f"↳ OID: {i[0]}")
+    print(f'Index: {i[1]}', f'OID: {i[0]}', sep=' ▮ ')
 
-index = int(input("\nWhich GiST index do you want to visualize?\nOID → "))
+idx_oid = int(input("""
+    \nWhich GiST index do you want to visualize?\nOID → """))
 
 cur.execute("""
     SELECT 
@@ -77,12 +73,13 @@ cur.execute("""
         END AS type
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM r_tree.indices
+	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-            [index])
+            [idx_oid])
+
 g_type = cur.fetchone()
 
 cur.execute("""
@@ -90,115 +87,64 @@ cur.execute("""
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM r_tree.indices
+	    SELECT tablename FROM indices
 	    JOIN pg_indexes
         ON idx_name = indexname
 	    WHERE idx_oid::integer = %s);
     """,
-            [index])
+            [idx_oid])
+
 g_srid = cur.fetchone()
 
-print("\nStatistics\n")
-cur.execute("SELECT gist_stat(%s);", [index])
-stats = cur.fetchone()
 
-print(stats[0])
+def string_to_list(st=()):
+    lst = list(st)
+    lst = lst[0].splitlines()
+    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
+    lst = [[el] for el in lst]
+    lst = [sub.split(': ') for subl in lst for sub in subl]
 
-
-def extractDigits(lst):
-    res = []
-    for el in lst:
-        sub = el.split(', ')
-        res.append(sub)
-
-    return(res)
+    return(lst)
 
 
-def expandB(lst):
-    tmp = list(lst)
-    tmp = tmp[0].splitlines()
-    for e in range(len(tmp)):
-        tmp[e] = " ".join(tmp[e].split())
-    tmp = extractDigits(tmp)
+print("\nStatistics")
 
-    return(tmp)
+cur.execute(f"SELECT gist_stat({idx_oid});")
+stat = cur.fetchone()
 
+print(stat[0])
 
-stats = expandB(stats)
-stats = [sub.split(': ') for subl in stats for sub in subl]
+stat = string_to_list(stat)
 
-print(f"Number of levels → {stats[0][1]}\n")
+key = [i[0] for i in stat]
+value = [i[1] for i in stat]
+
+for i in range(6):
+    value[i] = int(value[i])
+
+print(f"Number of levels → {value[0]}\n")
 level = int(input("Level to visualize \n↳ "))
 
-cur.execute("SELECT gist_tree(%s, 2);", [index])
-tree = cur.fetchone()
-
-t = expandB(tree)
-t = [sub.split(' ') for subl in t for sub in subl]
-
-with open("tree.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    f.write('level,col2,blk,col4,tuple,col6,space,col8,col9\n')
-    writer.writerows(t)
-
-df = pd.read_csv('tree.csv')
-
-df.drop('col2', inplace=True, axis=1)
-df.drop('col4', inplace=True, axis=1)
-df.drop('col6', inplace=True, axis=1)
-df.drop('col8', inplace=True, axis=1)
-df.drop('col9', inplace=True, axis=1)
-
-df[['page', 'level']] = df.level.str.split("(", expand=True)
-df[['tmp', 'level']] = df.level.str.split(":", expand=True)
-df[['level', 'tmp']] = df.level.str.split(")", expand=True)
-df[['free(Bytes)', 'occupied']] = df.space.str.split("b", expand=True)
-df[['tmp', 'occupied']] = df.occupied.str.split("(", expand=True)
-df[['occupied(%)', 'tmp']] = df.occupied.str.split("%", expand=True)
-df.drop('tmp', inplace=True, axis=1)
-df.drop('space', inplace=True, axis=1)
-df.drop('occupied', inplace=True, axis=1)
-
-df = df[["page", "level", "blk", "tuple", "free(Bytes)", "occupied(%)"]]
-
-df.rename(columns={'page': 'node', 'level': 'level', 'blk': 'block', 'tuple': 'num_tuples',
-                   'free(Bytes)': 'free_space(bytes)', 'occupied(%)': 'occupied_space(%)'}, inplace=True)
-
-df.to_csv('tree.csv', index=False)
-
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS r_tree.tree (
-        node serial PRIMARY KEY,
-        level integer,
-        block integer,
-        num_tuples integer,
-        "free_space(bytes)" double precision,
-        "occupied_space(%)" double precision);""")
-
-cur.execute("TRUNCATE TABLE r_tree.tree RESTART IDENTITY;")
-
-with open('tree.csv', 'r') as f:
-    next(f)
-    cur.copy_from(f, 'tree', sep=',')
-
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS r_tree.r_tree (
+    CREATE TABLE IF NOT EXISTS gist.r_tree (
         id serial primary key,
         area_km2 numeric,
         geom geometry(%s));
     """,
             [g_type[0]])
-cur.execute("TRUNCATE TABLE r_tree.r_tree RESTART IDENTITY;")
+
+cur.execute("TRUNCATE TABLE gist.r_tree RESTART IDENTITY;")
 
 cur.execute("""
-    INSERT INTO r_tree.r_tree (geom)
+    INSERT INTO gist.r_tree (geom)
     SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-            [g_srid[0], index, level])
+            [g_srid[0], idx_oid, level])
+
 
 cur.execute("""
-    UPDATE r_tree.r_tree
+    UPDATE gist.r_tree
     SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
     """)
 
@@ -206,7 +152,7 @@ cur.execute("""
 conn.commit()
 
 cur.execute("END TRANSACTION;")
-cur.execute("VACUUM ANALYZE r_tree.r_tree;")
+cur.execute("VACUUM ANALYZE gist.r_tree;")
 cur.execute("NOTIFY qgis, 'refresh qgis';")
 
 cur.close()
