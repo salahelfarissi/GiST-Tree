@@ -109,10 +109,10 @@ cur.execute("""
 
 tuples = cur.fetchone()[0]
 
-# TODO: convert string to int for numeric values
 
 
 def tuple_to_dict(st=()):
+    """Convert the result object of the query to a list"""
     lst = list(st)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
     lst = [[el] for el in lst]
@@ -151,7 +151,7 @@ for i in range(1, tuples + 1):
 
     print(stat[0])
 
-    stat = tuple_to_dict(stat)
+    stat = tuple_to_dict(st=stat)
 
     # ? Number of levels
     level = stat['Number of levels']
