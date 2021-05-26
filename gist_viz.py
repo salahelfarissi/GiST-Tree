@@ -110,7 +110,6 @@ cur.execute("""
 tuples = cur.fetchone()[0]
 
 
-
 def tuple_to_dict(st=()):
     """Convert the result object of the query to a list"""
     lst = list(st)[0].splitlines()
@@ -151,6 +150,7 @@ for i in range(1, tuples + 1):
 
     print(stat[0])
 
+    # * st is a keyword argument
     stat = tuple_to_dict(st=stat)
 
     # ? Number of levels
