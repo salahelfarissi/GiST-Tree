@@ -1,7 +1,7 @@
 import psycopg2
 
 conn = psycopg2.connect("""
-    host=192.168.1.104
+    host=192.168.1.103
     dbname=mono
     password='%D2a3#PsT'
     """)
@@ -62,8 +62,12 @@ print('\nList of GiST indices')
 for i in indices:
     print(f'Index: {i[1]}', f'OID: {i[0]}', sep=' ▮ ')
 
-idx_oid = int(input("""
-    \nWhich GiST index do you want to visualize?\nOID → """))
+try:
+    idx_oid = int(input("""
+        \nWhich GiST index do you want to visualize?\nOID → """))
+except ValueError:
+    idx_oid = int(input("""
+        \nYou must enter an integer value!\nOID → """))
 
 cur.execute("""
     SELECT 
