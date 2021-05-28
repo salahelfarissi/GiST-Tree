@@ -1,7 +1,7 @@
 from psycopg2 import sql, connect
 
 conn = connect("""
-    host='192.168.1.104'
+    host='192.168.1.100'
     dbname='mono'
     user='elfarissi'
     """)
@@ -112,6 +112,7 @@ tuples = cur.fetchone()[0]
 
 def tuple_to_dict(st=()):
     """Convert the result object of the query to a list"""
+    """tuple_to_dict() function accepts keyword-argument parameter"""
     lst = list(st)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
     lst = [[el] for el in lst]
@@ -169,10 +170,7 @@ for i in range(1, tuples + 1):
                         [g_type, g_srid])
 
             cur.execute("""
-                TRUNCATE TABLE r_tree_l1""")
-
-            cur.execute("""
-                TRUNCATE TABLE r_tree_l2""")
+                TRUNCATE TABLE r_tree_l1, r_tree_l2""")
 
             cur.execute("""
                 INSERT INTO r_tree_l2
@@ -186,10 +184,7 @@ for i in range(1, tuples + 1):
             cur.execute("END TRANSACTION;")
 
             cur.execute("""
-                VACUUM ANALYZE r_tree_l1;""")
-
-            cur.execute("""
-                VACUUM ANALYZE r_tree_l2;""")
+                VACUUM ANALYZE r_tree_l1, r_tree_l2""")
 
             cur.execute("NOTIFY qgis, 'refresh qgis';")
 
