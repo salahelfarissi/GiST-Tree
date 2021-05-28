@@ -59,8 +59,10 @@ indices = cur.fetchall()
 
 print('\nList of GiST indices')
 
-for i in indices:
-    print(f'Index: {i[1]}', f'OID: {i[0]}', sep=' ▮ ')
+print(f'{"Index":>21}{"OID":>9}')
+print('-'*30)
+for tup in indices:
+    print(f'{tup[1]:>21}{tup[0]:>9}')
 
 try:
     idx_oid = int(input("""
