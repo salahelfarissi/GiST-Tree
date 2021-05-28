@@ -1,7 +1,7 @@
 import psycopg2
 
 conn = psycopg2.connect("""
-    host=192.168.1.103
+    host=192.168.1.100
     dbname=mono
     password='%D2a3#PsT'
     """)
