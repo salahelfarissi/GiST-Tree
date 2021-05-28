@@ -1,3 +1,4 @@
+# TODO: import only the used functions in the script
 import psycopg2
 
 conn = psycopg2.connect("""
@@ -57,24 +58,16 @@ cur.execute("""
 
 indices = cur.fetchall()
 
-print('\nList of GiST indices')
-
 idx_names = [i[1] for i in indices]
 oid_values = [i[0] for i in indices]
 
-len_str = []
-for el in idx_names:
-    len_str.append(len(el))
-
+len_str = [len(el) for el in idx_names] 
 w = max(len_str)
 
-len_val = []
-for el in oid_values:
-    len_val.append(len(str(el)))
-
+len_val = [len(str(el)) for el in oid_values]
 vw = max(len_val) + 3
 
-print(f'{"Index":>{w}}{"OID":>{vw}}')
+print(f'\n{"Index":>{w}}{"OID":>{vw}}')
 print('-'*30)
 for tup in indices:
     print(f'{tup[1]:>{w}}{tup[0]:>{vw}}')
@@ -136,16 +129,12 @@ def tuple_to_dict(st=()):
     return(dct)
 
 
-print("\nStatistics")
-
 cur.execute(f"SELECT gist_stat({idx_oid});")
 stat = cur.fetchone()
 
-print(stat[0])
-
 stat = tuple_to_dict(stat)
 
-print(f"Number of levels → {stat['Number of levels']}\n")
+print(f"\nNumber of levels → {stat['Number of levels']}\n")
 level = int(input("Level to visualize \n↳ "))
 
 cur.execute("""
