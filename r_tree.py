@@ -59,10 +59,25 @@ indices = cur.fetchall()
 
 print('\nList of GiST indices')
 
-print(f'{"Index":>21}{"OID":>9}')
+idx_names = [i[1] for i in indices]
+oid_values = [i[0] for i in indices]
+
+len_str = []
+for el in idx_names:
+    len_str.append(len(el))
+
+w = max(len_str)
+
+len_val = []
+for el in oid_values:
+    len_val.append(len(str(el)))
+
+vw = max(len_val) + 3
+
+print(f'{"Index":>{w}}{"OID":>{vw}}')
 print('-'*30)
 for tup in indices:
-    print(f'{tup[1]:>21}{tup[0]:>9}')
+    print(f'{tup[1]:>{w}}{tup[0]:>{vw}}')
 
 try:
     idx_oid = int(input("""
