@@ -169,6 +169,7 @@ for i in range(1, tuples + 1):
                 """,
                         [g_type, g_srid])
 
+            # ? Maybe I do not need to truncate level 1 at this level
             cur.execute("""
                 TRUNCATE TABLE r_tree_l1, r_tree_l2""")
 
