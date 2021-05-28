@@ -1,7 +1,26 @@
 # TODO: import only the used functions in the script
-import psycopg2
+from psycopg2 import connect
 
-conn = psycopg2.connect("""
+
+def tuple_to_dict(st=()):
+    lst = list(st)[0].splitlines()
+    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
+    lst = [[el] for el in lst]
+    lst = [sub.split(': ') for subl in lst for sub in subl]
+
+    key = [i[0] for i in lst]
+    value = [i[1] for i in lst]
+
+    for i in range(len(value)):
+        value[i] = value[i].replace(' bytes', '')
+        value[i] = int(value[i])
+
+    dct = {key[i]: value[i] for i in range(len(key))}
+
+    return(dct)
+
+
+conn = connect("""
     host=192.168.1.100
     dbname=mono
     password='%D2a3#PsT'
@@ -109,25 +128,6 @@ cur.execute("""
             [idx_oid])
 
 g_srid = cur.fetchone()
-
-
-def tuple_to_dict(st=()):
-    lst = list(st)[0].splitlines()
-    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
-    lst = [[el] for el in lst]
-    lst = [sub.split(': ') for subl in lst for sub in subl]
-
-    key = [i[0] for i in lst]
-    value = [i[1] for i in lst]
-
-    for i in range(len(value)):
-        value[i] = value[i].replace(' bytes', '')
-        value[i] = int(value[i])
-
-    dct = {key[i]: value[i] for i in range(len(key))}
-
-    return(dct)
-
 
 cur.execute(f"SELECT gist_stat({idx_oid});")
 stat = cur.fetchone()
