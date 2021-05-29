@@ -9,7 +9,7 @@ conn = connect("""
     password='%D2a3#PsT'
     """)
 
-
+# TODO: Add comment to each list comprehension
 def tuple_to_dict(st=()):
     lst = list(st)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
