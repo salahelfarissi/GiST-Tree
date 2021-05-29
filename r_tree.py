@@ -1,5 +1,13 @@
-# TODO: import only the used functions in the script
+# TODO: seperate functions into their respective file
+# r_tree.py
+"""Display bboxes that are used in GiST implementation of R-Tree Dynamic Index"""
 from psycopg2 import connect
+
+conn = connect("""
+    host=192.168.1.100
+    dbname=mono
+    password='%D2a3#PsT'
+    """)
 
 
 def tuple_to_dict(st=()):
@@ -20,11 +28,19 @@ def tuple_to_dict(st=()):
     return(dct)
 
 
-conn = connect("""
-    host=192.168.1.100
-    dbname=mono
-    password='%D2a3#PsT'
-    """)
+def max_len():
+    """Return the maximum length of elements of a list"""
+    idx_names = [i[1] for i in indices]
+    idx_oids = [i[0] for i in indices]
+
+    len_names = [len(el) for el in idx_names]
+    len1 = max(len_names)
+
+    len_oids = [len(str(el)) for el in idx_oids]
+    len2 = max(len_oids) + 3
+
+    return len1, len2  # pack max len values into a tuple
+
 
 cur = conn.cursor()
 
@@ -77,17 +93,10 @@ cur.execute("""
 
 indices = cur.fetchall()
 
-idx_names = [i[1] for i in indices]
-oid_values = [i[0] for i in indices]
+w, vw = max_len()  # unpack the tuple into variables w and vw
 
-len_str = [len(el) for el in idx_names] 
-w = max(len_str)
+print(f'\n{"Index":>{w}}{"OID":>{vw}}', '-'*30, sep='\n')
 
-len_val = [len(str(el)) for el in oid_values]
-vw = max(len_val) + 3
-
-print(f'\n{"Index":>{w}}{"OID":>{vw}}')
-print('-'*30)
 for tup in indices:
     print(f'{tup[1]:>{w}}{tup[0]:>{vw}}')
 

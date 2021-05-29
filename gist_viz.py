@@ -161,7 +161,8 @@ for i in range(1, tuples + 1):
 
     for l in level:
 
-        if len(level) == 1 or l == 1:
+        # TODO: I think the logic here won't work
+        if len(level) == 1 or l == 2:
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS r_tree_l2 (
@@ -169,9 +170,15 @@ for i in range(1, tuples + 1):
                 """,
                         [g_type, g_srid])
 
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS r_tree_l1 (
+                    geom geometry(%s, %s));
+                """,
+                        [g_type, g_srid])
+
             # ? Maybe I do not need to truncate level 1 at this level
             cur.execute("""
-                TRUNCATE TABLE r_tree_l1, r_tree_l2""")
+                TRUNCATE TABLE r_tree_l2 RESTART IDENTITY""")
 
             cur.execute("""
                 INSERT INTO r_tree_l2
@@ -199,7 +206,7 @@ for i in range(1, tuples + 1):
                         [g_type, g_srid])
 
             cur.execute("""
-                TRUNCATE TABLE r_tree_l1""")
+                TRUNCATE TABLE r_tree_l1 RESTART IDENTITY""")
 
             cur.execute("""
                 INSERT INTO r_tree_l1
