@@ -10,8 +10,9 @@ conn = connect("""
     """)
 
 # TODO: Add comment to each list comprehension
-def tuple_to_dict(st=()):
-    lst = list(st)[0].splitlines()
+def tuple_to_dict():
+    global stat
+    lst = list(stat)[0].splitlines()
     lst = [" ".join(lst[e].split()) for e in range(len(lst))]
     lst = [[el] for el in lst]
     lst = [sub.split(': ') for subl in lst for sub in subl]
@@ -140,7 +141,7 @@ g_srid = cur.fetchone()
 cur.execute(f"SELECT gist_stat({idx_oid});")
 stat = cur.fetchone()
 
-stat = tuple_to_dict(stat)
+stat = tuple_to_dict()
 
 print(f"\nNumber of levels → {stat['Number of levels']}\n")
 level = int(input("Level to visualize \n↳ "))
