@@ -23,9 +23,7 @@ def tuple_to_dict(st=()):
         value[i] = value[i].replace(' bytes', '')
         value[i] = int(value[i])
 
-    dct = {key[i]: value[i] for i in range(len(key))}
-
-    return(dct)
+    return {key[i]: value[i] for i in range(len(key))}
 
 
 def max_len():
@@ -34,10 +32,9 @@ def max_len():
     idx_oids = [i[0] for i in indices]
 
     len_names = [len(el) for el in idx_names]
-    len1 = max(len_names)
-
     len_oids = [len(str(el)) for el in idx_oids]
-    len2 = max(len_oids) + 3
+
+    len1, len2 = max(len_names), max(len_oids) + 3
 
     return len1, len2  # pack max len values into a tuple
 
@@ -95,11 +92,13 @@ indices = cur.fetchall()
 
 w, vw = max_len()  # unpack the tuple into variables w and vw
 
+# Display a two column table with index and oid
 print(f'\n{"Index":>{w}}{"OID":>{vw}}', '-'*30, sep='\n')
 
 for tup in indices:
     print(f'{tup[1]:>{w}}{tup[0]:>{vw}}')
 
+# Ask the user which index to visualize
 try:
     idx_oid = int(input("""
         \nWhich GiST index do you want to visualize?\nOID → """))
