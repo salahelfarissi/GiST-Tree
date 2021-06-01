@@ -1,6 +1,7 @@
 # gist_viz.py
-'''Visualize gist index'''
-from psycopg2 import sql, connect
+"""Visualize gist index"""
+from psycopg2 import connect
+from func import *
 
 conn = connect("""
     host='192.168.1.100'
@@ -71,7 +72,6 @@ cur.execute("""
 
 idx_oid = cur.fetchone()[0]
 
-
 cur.execute("""
     SELECT
         CASE
@@ -89,7 +89,6 @@ cur.execute("""
 
 g_type = cur.fetchone()[0]
 
-
 cur.execute("""
     SELECT
         srid
@@ -104,33 +103,11 @@ cur.execute("""
 
 g_srid = cur.fetchone()[0]
 
-
 cur.execute("""
     SELECT COUNT(*) FROM communes;
     """)
 
 tuples = cur.fetchone()[0]
-
-
-def tuple_to_dict(st=()):
-    """Convert the result object of the query to a list"""
-    """tuple_to_dict() function accepts keyword-argument parameter"""
-    lst = list(st)[0].splitlines()
-    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
-    lst = [[el] for el in lst]
-    lst = [sub.split(': ') for subl in lst for sub in subl]
-
-    key = [i[0] for i in lst]
-    value = [i[1] for i in lst]
-
-    for i in range(len(value)):
-        value[i] = value[i].replace(' bytes', '')
-        value[i] = int(value[i])
-
-    dct = {key[i]: value[i] for i in range(len(key))}
-
-    return(dct)
-
 
 for i in range(1, tuples + 1):
 
@@ -153,17 +130,14 @@ for i in range(1, tuples + 1):
 
     print(stat[0])
 
-    # * st is a keyword argument
-    stat = tuple_to_dict(st=stat)
+    stat = unpack(stat)
 
-    # ? Number of levels
     level = stat['Number of levels']
 
     level = [value for value in range(1, level + 1)]
 
     for l in level:
 
-        # TODO: I think the logic here won't work
         if len(level) == 1 or l == 2:
 
             cur.execute("""
@@ -178,7 +152,6 @@ for i in range(1, tuples + 1):
                 """,
                         [g_type, g_srid])
 
-            # ? Maybe I do not need to truncate level 1 at this level
             cur.execute("""
                 TRUNCATE TABLE r_tree_l2 RESTART IDENTITY""")
 

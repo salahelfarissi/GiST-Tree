@@ -1,46 +1,14 @@
-# TODO: seperate func into their respective file
 # r_tree.py
-"""Display bboxes that are used in GiST implementation of R-Tree Dynamic Index"""
+"""Display r-tree bboxes"""
+
 from psycopg2 import connect
+from func import *  # user defined functions
 
 conn = connect("""
     host=192.168.1.100
     dbname=mono
-    password='%D2a3#PsT'
+    user='elfarissi'
     """)
-
-# TODO: Add comment to each list comprehension
-
-
-def unpack():
-    global stat
-    lst = list(stat)[0].splitlines()
-    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
-    lst = [[el] for el in lst]
-    lst = [sub.split(': ') for subl in lst for sub in subl]
-
-    key = [i[0] for i in lst]
-    value = [i[1] for i in lst]
-
-    for i in range(len(value)):
-        value[i] = value[i].replace(' bytes', '')
-        value[i] = int(value[i])
-
-    return {key[i]: value[i] for i in range(len(key))}
-
-
-def max_len():
-    """Return the maximum length of elements of a list"""
-    idx_names = [i[1] for i in indices]
-    idx_oids = [i[0] for i in indices]
-
-    len_names = [len(el) for el in idx_names]
-    len_oids = [len(str(el)) for el in idx_oids]
-
-    len1, len2 = max(len_names), max(len_oids) + 3
-
-    return len1, len2  # pack max len values into a tuple
-
 
 cur = conn.cursor()
 
@@ -93,7 +61,7 @@ cur.execute("""
 
 indices = cur.fetchall()
 
-w, vw = max_len()
+w, vw = max_len(indices)  # field width
 
 # Display a two column table with index and oid
 print(f'\n{"Index":>{w}}{"OID":>{vw}}', '-'*30, sep='\n')
@@ -143,7 +111,7 @@ g_srid = cur.fetchone()
 cur.execute(f"SELECT gist_stat({idx_oid});")
 stat = cur.fetchone()
 
-stat = unpack()
+stat = unpack(stat)
 
 print(f"\nNumber of levels → {stat['Number of levels']}\n")
 level = int(input("Level to visualize \n↳ "))
