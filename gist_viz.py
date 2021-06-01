@@ -1,3 +1,5 @@
+# gist_viz.py
+'''Visualize gist index'''
 from psycopg2 import sql, connect
 
 conn = connect("""

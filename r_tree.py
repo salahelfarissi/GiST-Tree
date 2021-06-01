@@ -10,6 +10,8 @@ conn = connect("""
     """)
 
 # TODO: Add comment to each list comprehension
+
+
 def unpack():
     global stat
     lst = list(stat)[0].splitlines()
@@ -96,8 +98,8 @@ w, vw = max_len()
 # Display a two column table with index and oid
 print(f'\n{"Index":>{w}}{"OID":>{vw}}', '-'*30, sep='\n')
 
-for tup in indices:
-    print(f'{tup[1]:>{w}}{tup[0]:>{vw}}')
+for oid, name in indices:
+    print(f'{name:>{w}}{oid:>{vw}}')
 
 # Ask the user which index to visualize
 try:
