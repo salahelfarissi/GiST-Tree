@@ -107,9 +107,9 @@ cur.execute("""
     SELECT COUNT(*) FROM communes;
     """)
 
-tuples = cur.fetchone()[0]
+num_geometries = cur.fetchone()[0]
 
-for i in range(1, tuples + 1):
+for i in range(1, num_geometries + 1):
 
     cur.execute("""
         INSERT INTO communes_knn
@@ -128,9 +128,10 @@ for i in range(1, tuples + 1):
     cur.execute(f"SELECT gist_stat({idx_oid});")
     stat = cur.fetchone()
 
-    print(stat[0])
-
     stat = unpack(stat)
+
+    for key, value in stat.items():
+        print(f'{key:<26} {value}')
 
     level = stat['Number of levels']
 
@@ -138,7 +139,7 @@ for i in range(1, tuples + 1):
 
     for l in level:
 
-        if len(level) == 1 or l == 2:
+        if len(level) == 1 or (2 in level):
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS r_tree_l2 (
