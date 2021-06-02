@@ -131,9 +131,10 @@ for i in range(1, num_geometries + 1):
     stat = unpack(stat)
 
     for key, value in stat.items():
-        print(f'{key:<26} {value}')
+        print(f'{key:<16} {value}')
+    print()
 
-    level = stat['Number of levels']
+    level = stat['Levels']
 
     level = [value for value in range(1, level + 1)]
 

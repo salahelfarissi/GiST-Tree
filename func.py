@@ -7,9 +7,11 @@ def unpack(tuple):
     key = [i[0] for i in lst]
     value = [i[1] for i in lst]
 
-    for i in range(len(value)):
-        value[i] = value[i].replace(' bytes', '')
-        value[i] = int(value[i])
+    new_keys = ['Levels', 'Pages', 'Leaf Pages', 'Tuples', 'Invalid Tuples',
+                'Leaf Tuples', 'Tuples Size', 'Leaf Tuples Size', 'Index Size']
+
+    key = [item.replace(item, new_keys[i]) for i, item in enumerate(key)]
+    value = [int(item[1].replace('bytes', '')) for item in enumerate(value)]
 
     return {key[i]: value[i] for i in range(len(key))}
 
