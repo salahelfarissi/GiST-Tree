@@ -110,12 +110,12 @@ cur.execute("""
 
 num_geometries = cur.fetchone()[0]
 
-user_input = int(sys.argv[1])
+num_injections = int(sys.argv[1])
 
-if user_input > num_geometries:
+if num_injections > num_geometries:
     num_iterations = num_geometries + 1
 else:
-    num_iterations = user_input + 1
+    num_iterations = num_injections + 1
 
 for i in range(1, num_iterations):
 
