@@ -1,9 +1,9 @@
 # r_tree.py
 """Display r-tree bboxes"""
-
 from psycopg2 import connect
 from func import *  # user defined functions
 
+# Use connect class to establish connection to PostgreSQL
 conn = connect("""
     host=192.168.1.100
     dbname=mono

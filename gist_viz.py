@@ -2,6 +2,7 @@
 """Visualize gist index"""
 from psycopg2 import connect
 from func import *
+import sys
 
 conn = connect("""
     host='192.168.1.100'
@@ -109,7 +110,14 @@ cur.execute("""
 
 num_geometries = cur.fetchone()[0]
 
-for i in range(1, num_geometries + 1):
+user_input = int(sys.argv[1])
+
+if user_input > num_geometries:
+    num_iterations = num_geometries + 1
+else:
+    num_iterations = user_input + 1
+
+for i in range(1, num_iterations):
 
     cur.execute("""
         INSERT INTO communes_knn
@@ -131,7 +139,7 @@ for i in range(1, num_geometries + 1):
     stat = unpack(stat)
 
     for key, value in stat.items():
-        print(f'{key:<16} {value}')
+        print(f'{key:<16}: {value:,}')
     print()
 
     level = stat['Levels']
