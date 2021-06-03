@@ -116,6 +116,31 @@ stat = cur.fetchone()
 
 stat = unpack(stat)
 
+print(f"\nNumber of levels → {stat['Levels']}\n")
+level = int(input("Level to visualize \n↳ "))
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS gist.r_tree (
+        id serial primary key,
+        area_km2 numeric,
+        geom geometry(%s));
+    """,
+            [g_type[0]])
+
+cur.execute("TRUNCATE TABLE gist.r_tree RESTART IDENTITY;")
+
+cur.execute("""
+    INSERT INTO gist.r_tree (geom)
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
+    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+    """,
+            [g_srid[0], idx_oid, level])
+
+cur.execute("""
+    UPDATE gist.r_tree
+    SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
+    """)
+
 """ Graphing total size in bytes of index entities """
 bytes = np.array([_ for _ in stat.values()][6:])
 values = np.array([_ for _ in stat.keys()][6:])
@@ -138,33 +163,6 @@ for bar, byte in zip(axes.patches, bytes):
               fontsize=11, ha='center', va='bottom')
 
 plt.show()  # display graph
-
-print(f"\nNumber of levels → {stat['Levels']}\n")
-level = int(input("Level to visualize \n↳ "))
-
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS gist.r_tree (
-        id serial primary key,
-        area_km2 numeric,
-        geom geometry(%s));
-    """,
-            [g_type[0]])
-
-cur.execute("TRUNCATE TABLE gist.r_tree RESTART IDENTITY;")
-
-cur.execute("""
-    INSERT INTO gist.r_tree (geom)
-    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
-    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
-    """,
-            [g_srid[0], idx_oid, level])
-
-
-cur.execute("""
-    UPDATE gist.r_tree
-    SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
-    """)
-
 
 conn.commit()
 
