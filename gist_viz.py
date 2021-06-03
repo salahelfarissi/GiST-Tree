@@ -1,6 +1,6 @@
 # gist_viz.py
 """Visualize gist index"""
-from psycopg2 import connect
+from psycopg2 import connect, sql
 from func import *
 import sys
 
@@ -19,7 +19,7 @@ cur.execute("""
         """)
 
 cur.execute("""
-    TRUNCATE TABLE communes_knn;
+    TRUNCATE TABLE communes_knn, r_tree_l1, r_tree_l2;
     """)
 
 cur.execute("""
@@ -107,7 +107,6 @@ g_srid = cur.fetchone()[0]
 cur.execute("""
     SELECT COUNT(*) FROM communes;
     """)
-
 num_geometries = cur.fetchone()[0]
 
 num_injections = int(sys.argv[1])
@@ -116,6 +115,36 @@ if num_injections > num_geometries:
     num_iterations = num_geometries + 1
 else:
     num_iterations = num_injections + 1
+
+
+def inject(tree, l):
+
+    cur.execute(sql.SQL("""
+        CREATE TABLE IF NOT EXISTS {} (
+            geom geometry(%s, %s));
+        """).format(
+        sql.Identifier(tree)
+    ),
+        [g_type, g_srid])
+
+    cur.execute(sql.SQL("""
+        TRUNCATE TABLE {} RESTART IDENTITY""").format(
+        sql.Identifier(tree)
+    ))
+
+    cur.execute(sql.SQL("""
+        INSERT INTO {}
+        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+        """).format(
+        sql.Identifier(tree)
+    ),
+        [g_srid, idx_oid, l])
+
+    conn.commit()
+
+    cur.execute("NOTIFY qgis, 'refresh qgis';")
+
 
 for i in range(1, num_iterations):
 
@@ -146,68 +175,15 @@ for i in range(1, num_iterations):
 
     level = [value for value in range(1, level + 1)]
 
-    for l in level:
+    if len(level) == 1:
+        inject('r_tree_l2', 1)
 
-        if len(level) == 1 or (2 in level):
-
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS r_tree_l2 (
-                    geom geometry(%s, %s));
-                """,
-                        [g_type, g_srid])
-
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS r_tree_l1 (
-                    geom geometry(%s, %s));
-                """,
-                        [g_type, g_srid])
-
-            cur.execute("""
-                TRUNCATE TABLE r_tree_l2 RESTART IDENTITY""")
-
-            cur.execute("""
-                INSERT INTO r_tree_l2
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
-                """,
-                        [g_srid, idx_oid, l])
-
-            conn.commit()
-
-            cur.execute("END TRANSACTION;")
-
-            cur.execute("""
-                VACUUM ANALYZE r_tree_l1, r_tree_l2""")
-
-            cur.execute("NOTIFY qgis, 'refresh qgis';")
-
-            continue
-
-        else:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS r_tree_l1 (
-                    geom geometry(%s, %s));
-                """,
-                        [g_type, g_srid])
-
-            cur.execute("""
-                TRUNCATE TABLE r_tree_l1 RESTART IDENTITY""")
-
-            cur.execute("""
-                INSERT INTO r_tree_l1
-                SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
-                FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
-                """,
-                        [g_srid, idx_oid, l])
-
-            conn.commit()
-
-            cur.execute("END TRANSACTION;")
-
-            cur.execute("""
-                VACUUM ANALYZE r_tree_l1;""")
-
-            cur.execute("NOTIFY qgis, 'refresh qgis';")
+    else:
+        for l in level:
+            if l == 1:
+                inject('r_tree_l1', 1)
+            else:
+                inject('r_tree_l2', 2)
 
 cur.close()
 conn.close()
