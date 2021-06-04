@@ -1,9 +1,10 @@
 # gist_viz.py
-"""Visualize gist index"""
+""" Visualize gist index """
+""" Script accepts a command line argument """
+
 from psycopg2 import connect, sql
 from func import *
 import sys
-
 conn = connect("""
     host='192.168.1.100'
     dbname='mono'
@@ -117,19 +118,19 @@ else:
     num_iterations = num_injections + 1
 
 
-def inject(tree, l):
+def bbox(table, l):
 
     cur.execute(sql.SQL("""
         CREATE TABLE IF NOT EXISTS {} (
             geom geometry(%s, %s));
         """).format(
-        sql.Identifier(tree)
+        sql.Identifier(table)
     ),
         [g_type, g_srid])
 
     cur.execute(sql.SQL("""
         TRUNCATE TABLE {} RESTART IDENTITY""").format(
-        sql.Identifier(tree)
+        sql.Identifier(table)
     ))
 
     cur.execute(sql.SQL("""
@@ -137,7 +138,7 @@ def inject(tree, l):
         SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """).format(
-        sql.Identifier(tree)
+        sql.Identifier(table)
     ),
         [g_srid, idx_oid, l])
 
@@ -176,14 +177,14 @@ for i in range(1, num_iterations):
     level = [value for value in range(1, level + 1)]
 
     if len(level) == 1:
-        inject('r_tree_l2', 1)
+        bbox('r_tree_l2', 1)
 
     else:
         for l in level:
             if l == 1:
-                inject('r_tree_l1', 1)
+                bbox('r_tree_l1', 1)
             else:
-                inject('r_tree_l2', 2)
+                bbox('r_tree_l2', 2)
 
 cur.close()
 conn.close()

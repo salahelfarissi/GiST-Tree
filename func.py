@@ -16,7 +16,7 @@ def unpack(tuple):
     return {key[i]: value[i] for i in range(len(key))}
 
 
-def max_len(table):
+def field_width(table):
     """Return the maximum length of elements of a list"""
     idx_names = [i[1] for i in table]
     idx_oids = [i[0] for i in table]

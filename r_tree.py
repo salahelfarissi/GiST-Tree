@@ -2,9 +2,6 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect
 from func import *  # user defined functions
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
 
 # Use connect class to establish connection to PostgreSQL
 conn = connect("""
@@ -64,13 +61,13 @@ cur.execute("""
 
 indices = cur.fetchall()
 
-w, vw = max_len(indices)  # field width
-
 # Display a two column table with index and oid
-print(f'\n{"Index":>{w}}{"OID":>{vw}}', '-'*30, sep='\n')
+w1, w2 = field_width(indices)
+
+print(f'\n{"Index":>{w1}}{"OID":>{w2}}', '-'*30, sep='\n')
 
 for oid, name in indices:
-    print(f'{name:>{w}}{oid:>{vw}}')
+    print(f'{name:>{w1}}{oid:>{w2}}')
 
 # Ask the user which index to visualize
 try:
@@ -140,29 +137,6 @@ cur.execute("""
     UPDATE gist.r_tree
     SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
     """)
-
-""" Graphing total size in bytes of index entities """
-bytes = np.array([_ for _ in stat.values()][6:])
-values = np.array([_ for _ in stat.keys()][6:])
-
-title = 'R-Tree'
-sns.set_style('whitegrid')  # white backround with gray grid lines
-axes = sns.barplot(values, bytes, palette='pastel')  # create bars
-axes.set_title(title)  # set graph title
-axes.set(xlabel='Memory', ylabel='Size')  # label the axes
-
-# scale y-axis by 10% to make room for text above bars
-axes.set_ylim(top=max(bytes) * 1.10)
-
-# display frequency & percentage above each patch (bar)
-for bar, byte in zip(axes.patches, bytes):
-    text_x = bar.get_x() + bar.get_width() / 2.0
-    text_y = bar.get_height()
-    text = f'{byte:,} bytes\n{byte / sum(bytes):.2%}'
-    axes.text(text_x, text_y, text,
-              fontsize=11, ha='center', va='bottom')
-
-plt.show()  # display graph
 
 conn.commit()
 
