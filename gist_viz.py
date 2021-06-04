@@ -24,7 +24,13 @@ cur.execute("""
     """)
 
 cur.execute("""
-    CREATE INDEX IF NOT EXISTS communes_knn_geom_idx
+    DROP INDEX IF EXISTS communes_knn_geom_idx;
+    """,
+            [])
+
+
+cur.execute("""
+    CREATE INDEX communes_knn_geom_idx
         ON communes_knn USING gist (geom);
         """)
 
@@ -144,7 +150,7 @@ def bbox(table, l):
 
     conn.commit()
 
-    cur.execute("NOTIFY qgis, 'refresh qgis';")
+    cur.execute("NOTIFY qgis;")
 
 
 for i in range(1, num_iterations):
@@ -163,13 +169,21 @@ for i in range(1, num_iterations):
         """,
                 [i - 1])
 
+    cur.execute("""
+        END;
+        """)
+
+    cur.execute("""
+        VACUUM ANALYZE communes_knn;
+        """)
+
     cur.execute(f"SELECT gist_stat({idx_oid});")
     stat = cur.fetchone()
 
     stat = unpack(stat)
 
     for key, value in stat.items():
-        print(f'{key:<16}: {value:,}')
+        print(f'{key:<16} : {value:,}')
     print()
 
     level = stat['Levels']
