@@ -6,32 +6,32 @@ from psycopg2 import connect, sql
 from func import *
 import sys
 conn = connect("""
-    host='192.168.1.100'
-    dbname='mono'
-    user='elfarissi'
+    host=localhost
+    dbname=nyc
+    user=postgres
     """)
 
 cur = conn.cursor()
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS communes_knn (
+    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
         c_code varchar(32),
-        geom geometry(MultiPolygon, 4326));
+        geom geometry(MultiPolygon, 26918));
         """)
 
 cur.execute("""
-    TRUNCATE TABLE communes_knn, r_tree_l1, r_tree_l2;
+    TRUNCATE TABLE neighborhoods_knn;
     """)
 
 cur.execute("""
-    DROP INDEX IF EXISTS communes_knn_geom_idx;
+    DROP INDEX IF EXISTS neighborhoods_knn_geom_idx;
     """,
             [])
 
 
 cur.execute("""
-    CREATE INDEX communes_knn_geom_idx
-        ON communes_knn USING gist (geom);
+    CREATE INDEX neighborhoods_knn_geom_idx
+        ON neighborhoods_knn USING gist (geom);
         """)
 
 cur.execute("""
@@ -75,7 +75,7 @@ cur.execute("""
 
 cur.execute("""
     SELECT idx_oid FROM indices
-    WHERE idx_name = 'communes_knn_geom_idx';
+    WHERE idx_name = 'neighborhoods_knn_geom_idx';
     """)
 
 idx_oid = cur.fetchone()[0]
@@ -112,7 +112,7 @@ cur.execute("""
 g_srid = cur.fetchone()[0]
 
 cur.execute("""
-    SELECT COUNT(*) FROM communes;
+    SELECT COUNT(*) FROM nyc_neighborhoods;
     """)
 num_geometries = cur.fetchone()[0]
 
@@ -128,11 +128,11 @@ def bbox(table, l):
 
     cur.execute(sql.SQL("""
         CREATE TABLE IF NOT EXISTS {} (
-            geom geometry(%s, %s));
+            geom geometry(%s));
         """).format(
         sql.Identifier(table)
     ),
-        [g_type, g_srid])
+        [g_type])
 
     cur.execute(sql.SQL("""
         TRUNCATE TABLE {} RESTART IDENTITY""").format(
@@ -141,12 +141,12 @@ def bbox(table, l):
 
     cur.execute(sql.SQL("""
         INSERT INTO {}
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon, %s)
+        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """).format(
         sql.Identifier(table)
     ),
-        [g_srid, idx_oid, l])
+        [idx_oid, l])
 
     conn.commit()
 
@@ -156,14 +156,14 @@ def bbox(table, l):
 for i in range(1, num_iterations):
 
     cur.execute("""
-        INSERT INTO communes_knn
+        INSERT INTO neighborhoods_knn
         SELECT
-            c.c_code,
-            c.geom
-        FROM communes c
-        ORDER by c.geom <-> (
-            SELECT geom FROM communes
-            WHERE c_nom = 'Lagouira')
+            n.gid,
+            n.geom
+        FROM nyc_neighborhoods n
+        ORDER by n.geom <-> (
+            SELECT geom FROM nyc_neighborhoods
+            WHERE name = 'Tottensville')
         LIMIT 1
         OFFSET %s;
         """,
@@ -174,7 +174,7 @@ for i in range(1, num_iterations):
         """)
 
     cur.execute("""
-        VACUUM ANALYZE communes_knn;
+        VACUUM ANALYZE neighborhoods_knn;
         """)
 
     cur.execute(f"SELECT gist_stat({idx_oid});")

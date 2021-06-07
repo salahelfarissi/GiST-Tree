@@ -5,16 +5,12 @@ from func import *  # user defined functions
 
 # Use connect class to establish connection to PostgreSQL
 conn = connect("""
-    host=192.168.1.100
-    dbname=mono
-    user='elfarissi'
+    host=localhost
+    dbname=nyc
+    user=postgres
     """)
 
 cur = conn.cursor()
-
-cur.execute("""
-    CREATE SCHEMA IF NOT EXISTS gist;
-    """)
 
 cur.execute("""
     CREATE TABLE IF NOT EXISTS indices (
@@ -117,31 +113,31 @@ print(f"\nNumber of levels → {stat['Levels']}\n")
 level = int(input("Level to visualize \n↳ "))
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS gist.r_tree (
+    CREATE TABLE IF NOT EXISTS r_tree (
         id serial primary key,
         area_km2 numeric,
         geom geometry(%s));
     """,
             [g_type[0]])
 
-cur.execute("TRUNCATE TABLE gist.r_tree RESTART IDENTITY;")
+cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
 
 cur.execute("""
-    INSERT INTO gist.r_tree (geom)
-    SELECT replace(a::text, '2DF', '')::box2d::geometry(POLYGON, %s)
+    INSERT INTO r_tree (geom)
+    SELECT replace(a::text, '2DF', '')::box2d::geometry(%s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-            [g_srid[0], idx_oid, level])
+            [g_type[0], idx_oid, level])
 
 cur.execute("""
-    UPDATE gist.r_tree
-    SET area_km2 = round((st_area(geom)/1000)::numeric, 2);
-    """)
+    SELECT UpdateGeometrySRID('r_tree','geom',%s);
+    """,
+            [g_srid[0]])
 
 conn.commit()
 
 cur.execute("END TRANSACTION;")
-cur.execute("VACUUM ANALYZE gist.r_tree;")
+cur.execute("VACUUM ANALYZE r_tree;")
 cur.execute("NOTIFY qgis;")
 
 cur.close()
