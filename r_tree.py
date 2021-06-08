@@ -2,6 +2,7 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect
 from func import *  # user defined functions
+import pandas as pd
 
 # Use connect class to establish connection to PostgreSQL
 conn = connect("""
@@ -76,8 +77,9 @@ cur.execute(f"SELECT gist_stat({idx_oid});")
 stat = cur.fetchone()
 
 stat = unpack(stat)
+stat = pd.Series(stat)
 
-print(f"\nNumber of levels → {stat['Levels']}\n")
+print(f"\nNumber of levels → {stat.Levels}\n")
 level = int(input("Level to visualize \n↳ "))
 
 cur.execute("""
