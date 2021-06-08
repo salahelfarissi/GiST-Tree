@@ -2,7 +2,7 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect, sql
 from func import *
-import sys
+import pandas as pd
 
 conn = connect("""
     host=localhost
@@ -11,24 +11,6 @@ conn = connect("""
     """)
 
 cur = conn.cursor()
-
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
-        geom geometry(MultiPolygon, 26918));
-        """)
-
-cur.execute("""
-    TRUNCATE TABLE neighborhoods_knn;
-    """)
-
-cur.execute("""
-    DROP INDEX IF EXISTS neighborhoods_knn_geom_idx;
-    """)
-
-cur.execute("""
-    CREATE INDEX neighborhoods_knn_geom_idx
-        ON neighborhoods_knn USING gist (geom);
-        """)
 
 cur.execute("""
     WITH gt_name AS (
@@ -59,10 +41,54 @@ cur.execute("""
             """)
 
 indices = cur.fetchall()
+indices = pd.Series(dict(indices))
 
-for oid, index in indices:
-    if index == 'neighborhoods_knn_geom_idx':
-        idx_oid = oid
+idx_oid = int(indices[indices == 'nyc_neighborhoods_geom_idx'].index[0])
+
+cur.execute(""" 
+    SELECT  
+        type 
+    FROM geometry_columns 
+    WHERE f_table_name IN ( 
+	    SELECT tablename FROM indices 
+	    JOIN pg_indexes 
+        ON idx_name = indexname 
+	    WHERE idx_oid::integer = %s); 
+    """,
+            [idx_oid])
+g_type = cur.fetchone()
+
+cur.execute(""" 
+    SELECT  
+        srid 
+    FROM geometry_columns 
+    WHERE f_table_name IN ( 
+	    SELECT tablename FROM indices 
+	    JOIN pg_indexes 
+        ON idx_name = indexname 
+	    WHERE idx_oid::integer = %s); 
+    """,
+            [idx_oid])
+g_srid = cur.fetchone()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
+        geom geometry(%s, %s));
+        """,
+            [g_type[0], g_srid[0]])
+
+cur.execute("""
+    TRUNCATE TABLE neighborhoods_knn;
+    """)
+
+cur.execute("""
+    DROP INDEX IF EXISTS neighborhoods_knn_geom_idx;
+    """)
+
+cur.execute("""
+    CREATE INDEX neighborhoods_knn_geom_idx
+        ON neighborhoods_knn USING gist (geom);
+        """)
 
 cur.execute("""
     SELECT COUNT(*) FROM nyc_neighborhoods;
@@ -86,14 +112,12 @@ def bbox(table, l):
 
     cur.execute(sql.SQL("""
         INSERT INTO {}
-        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
+        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """).format(
         sql.Identifier(table)
     ),
-        [idx_oid, l])
-
-    conn.commit()
+        [g_srid[0], idx_oid, l])
 
     cur.execute("NOTIFY qgis;")
 
@@ -143,6 +167,8 @@ for i in range(1, num_geometries):
                 bbox('r_tree_l1', 1)
             else:
                 bbox('r_tree_l2', 2)
+
+conn.commit()
 
 cur.close()
 conn.close()
