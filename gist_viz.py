@@ -91,7 +91,7 @@ cur.execute("""
             [g_type[0], g_srid[0]])
 
 cur.execute("""
-    TRUNCATE TABLE neighborhoods_knn RESTART IDENTITY;
+    TRUNCATE TABLE neighborhoods_knn;
     """)
 
 cur.execute("""
@@ -115,7 +115,7 @@ def bbox(table, l):
     ))
 
     cur.execute(sql.SQL("""
-        TRUNCATE TABLE {} RESTART IDENTITY""").format(
+        TRUNCATE TABLE {}""").format(
         sql.Identifier(table)
     ))
 
