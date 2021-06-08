@@ -13,25 +13,14 @@ conn = connect("""
 cur = conn.cursor()
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS indices (
-        idx_oid serial primary key, 
-        idx_name varchar);
-        """)
-
-cur.execute("""
-    TRUNCATE TABLE indices;
-    """)
-
-cur.execute("""
-    INSERT INTO indices
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
         FROM geometry_columns
     )
     SELECT
-        CAST(c.oid AS INTEGER),
-        c.relname
+        CAST(c.oid AS INTEGER) as "OID",
+        c.relname as "INDEX"
     FROM pg_class c, pg_index i
     WHERE c.oid = i.indexrelid
     AND c.relname IN (
@@ -51,16 +40,12 @@ cur.execute("""
             AND indisprimary != 't' ));
             """)
 
-cur.execute("""
-    SELECT * FROM indices;
-    """)
-
 indices = cur.fetchall()
 
 # Display a two column table with index and oid
 w1, w2 = field_width(indices)
 
-print(f'\n{"Index":>{w1}}{"OID":>{w2}}', '-'*30, sep='\n')
+print(f'\n{"Index":>{w1}}{"OID":>{w2}}', '-'*(w1 + w2), sep='\n')
 
 for oid, name in indices:
     print(f'{name:>{w1}}{oid:>{w2}}')
@@ -72,23 +57,6 @@ try:
 except ValueError:
     idx_oid = int(input("""
         \nYou must enter an integer value!\nOID → """))
-
-cur.execute("""
-    SELECT 
-        CASE 
-            WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
-            ELSE type
-        END AS type
-    FROM geometry_columns
-    WHERE f_table_name IN (
-	    SELECT tablename FROM indices
-	    JOIN pg_indexes
-        ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
-    """,
-            [idx_oid])
-
-g_type = cur.fetchone()
 
 cur.execute("""
     SELECT 
@@ -113,26 +81,22 @@ print(f"\nNumber of levels → {stat['Levels']}\n")
 level = int(input("Level to visualize \n↳ "))
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS r_tree (
-        id serial primary key,
-        area_km2 numeric,
-        geom geometry(%s));
-    """,
-            [g_type[0]])
+    DROP TABLE IF EXISTS r_tree;
+    """)
 
-cur.execute("TRUNCATE TABLE r_tree RESTART IDENTITY;")
+cur.execute("""
+    CREATE TABLE r_tree (
+        id serial primary key,
+        geom geometry(POLYGON, %s));
+    """,
+    [g_srid[0]])
 
 cur.execute("""
     INSERT INTO r_tree (geom)
-    SELECT replace(a::text, '2DF', '')::box2d::geometry(%s)
+    SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
     FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-            [g_type[0], idx_oid, level])
-
-cur.execute("""
-    SELECT UpdateGeometrySRID('r_tree','geom',%s);
-    """,
-            [g_srid[0]])
+            [g_srid[0], idx_oid, level])
 
 conn.commit()
 
