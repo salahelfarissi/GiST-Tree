@@ -14,6 +14,17 @@ conn = connect("""
 cur = conn.cursor()
 
 cur.execute("""
+    CREATE TABLE IF NOT EXISTS indices (
+        idx_oid serial primary key,
+        idx_name varchar);
+        """)
+
+cur.execute("""
+    TRUNCATE TABLE indices;
+    """)
+
+cur.execute("""
+    INSERT INTO indices
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
@@ -40,6 +51,10 @@ cur.execute("""
             AND indisunique != 't'
             AND indisprimary != 't' ));
             """)
+
+cur.execute("""
+    SELECT * FROM indices;
+    """)
 
 indices = cur.fetchall()
 
@@ -91,7 +106,7 @@ cur.execute("""
         id serial primary key,
         geom geometry(POLYGON, %s));
     """,
-    [g_srid[0]])
+            [g_srid[0]])
 
 cur.execute("""
     INSERT INTO r_tree (geom)
