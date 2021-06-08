@@ -154,13 +154,19 @@ for i in range(1, num_geometries):
         VACUUM ANALYZE neighborhoods_knn;
         """)
 
-    cur.execute(f"SELECT gist_stat({idx_oid});")
-    stat = cur.fetchone()
+    if i == 1:
+        cur.execute(f"SELECT gist_stat({idx_oid});")
+        stat = cur.fetchone()
+        stat = unpack(stat)
 
-    stat = unpack(stat)
+    else:
+        cur.execute(f"SELECT gist_stat({idx_oid});")
+        tmp = cur.fetchone()
+        tmp = unpack(stat)
+        tmp = tmp.values()
 
     for key, value in stat.items():
-        print(f'{key:<16} : {value:,}')
+        print(f'{key:<16} : {value[i - 1]:,}')
     print()
 
     level = stat['Levels']
