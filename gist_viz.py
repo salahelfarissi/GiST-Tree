@@ -168,9 +168,6 @@ for i in range(1, num_geometries + 1):
         print(f'{key:<16} : {value[i - 1]:,}')
     print()
 
-    abc = pd.DataFrame(stat)
-    print(abc)
-
     level = stat['Levels'][i - 1]
 
     level = [value for value in range(1, level + 1)]
