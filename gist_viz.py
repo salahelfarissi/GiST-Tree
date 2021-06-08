@@ -19,7 +19,7 @@ cur.execute("""
         """)
 
 cur.execute("""
-    TRUNCATE TABLE indices;
+    TRUNCATE TABLE indices RESTART IDENTITY;
     """)
 
 cur.execute("""
@@ -55,9 +55,7 @@ cur.execute("""
     SELECT * FROM indices;
     """)
 
-indices = cur.fetchall()
-indices = pd.Series(dict(indices))
-
+indices = pd.Series(dict(cur.fetchall()))
 idx_oid = int(indices[indices == 'neighborhoods_knn_geom_idx'].index[0])
 
 cur.execute(""" 
