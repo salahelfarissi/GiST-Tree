@@ -1,10 +1,9 @@
 # gist_viz.py
-""" Visualize gist index """
-""" Script accepts a command line argument """
-
+"""Display r-tree bboxes"""
 from psycopg2 import connect, sql
 from func import *
 import sys
+
 conn = connect("""
     host=localhost
     dbname=nyc
@@ -15,7 +14,6 @@ cur = conn.cursor()
 
 cur.execute("""
     CREATE TABLE IF NOT EXISTS neighborhoods_knn (
-        c_code varchar(32),
         geom geometry(MultiPolygon, 26918));
         """)
 
@@ -25,9 +23,7 @@ cur.execute("""
 
 cur.execute("""
     DROP INDEX IF EXISTS neighborhoods_knn_geom_idx;
-    """,
-            [])
-
+    """)
 
 cur.execute("""
     CREATE INDEX neighborhoods_knn_geom_idx
@@ -35,25 +31,14 @@ cur.execute("""
         """)
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS indices (
-        idx_oid serial primary key,
-        idx_name varchar);
-        """)
-
-cur.execute("""
-    TRUNCATE TABLE indices;
-    """)
-
-cur.execute("""
-    INSERT INTO indices
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
         FROM geometry_columns
     )
     SELECT
-        CAST(c.oid AS INTEGER),
-        c.relname
+        CAST(c.oid AS INTEGER) as "OID",
+        c.relname as "INDEX"
     FROM pg_class c, pg_index i
     WHERE c.oid = i.indexrelid
     AND c.relname IN (
@@ -73,66 +58,26 @@ cur.execute("""
             AND indisprimary != 't' ));
             """)
 
-cur.execute("""
-    SELECT idx_oid FROM indices
-    WHERE idx_name = 'neighborhoods_knn_geom_idx';
-    """)
+indices = cur.fetchall()
 
-idx_oid = cur.fetchone()[0]
-
-cur.execute("""
-    SELECT
-        CASE
-            WHEN type = 'MULTIPOLYGON' THEN 'POLYGON'
-            ELSE type
-        END AS type
-    FROM geometry_columns
-    WHERE f_table_name IN (
-        SELECT tablename FROM indices
-        JOIN pg_indexes
-        ON idx_name = indexname
-        WHERE idx_oid::integer = %s);
-    """,
-            [idx_oid])
-
-g_type = cur.fetchone()[0]
-
-cur.execute("""
-    SELECT
-        srid
-    FROM geometry_columns
-    WHERE f_table_name IN (
-        SELECT tablename FROM indices
-        JOIN pg_indexes
-        ON idx_name = indexname
-        WHERE idx_oid::integer = %s);
-    """,
-            [idx_oid])
-
-g_srid = cur.fetchone()[0]
+for oid, index in indices:
+    if index == 'neighborhoods_knn_geom_idx':
+        idx_oid = oid
 
 cur.execute("""
     SELECT COUNT(*) FROM nyc_neighborhoods;
     """)
 num_geometries = cur.fetchone()[0]
 
-num_injections = int(sys.argv[1])
-
-if num_injections > num_geometries:
-    num_iterations = num_geometries + 1
-else:
-    num_iterations = num_injections + 1
-
 
 def bbox(table, l):
 
     cur.execute(sql.SQL("""
         CREATE TABLE IF NOT EXISTS {} (
-            geom geometry(%s));
+            geom geometry);
         """).format(
         sql.Identifier(table)
-    ),
-        [g_type])
+    ))
 
     cur.execute(sql.SQL("""
         TRUNCATE TABLE {} RESTART IDENTITY""").format(
@@ -141,7 +86,7 @@ def bbox(table, l):
 
     cur.execute(sql.SQL("""
         INSERT INTO {}
-        SELECT replace(a::text, '2DF', '')::box2d::geometry(Polygon)
+        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """).format(
         sql.Identifier(table)
@@ -153,12 +98,11 @@ def bbox(table, l):
     cur.execute("NOTIFY qgis;")
 
 
-for i in range(1, num_iterations):
+for i in range(1, num_geometries):
 
     cur.execute("""
         INSERT INTO neighborhoods_knn
         SELECT
-            n.gid,
             n.geom
         FROM nyc_neighborhoods n
         ORDER by n.geom <-> (
