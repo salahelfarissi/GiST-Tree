@@ -131,7 +131,7 @@ def bbox(table, l):
     cur.execute("NOTIFY qgis;")
 
 
-for i in range(1, num_geometries):
+for i in range(1, num_geometries + 1):
 
     cur.execute("""
         INSERT INTO neighborhoods_knn
@@ -155,21 +155,23 @@ for i in range(1, num_geometries):
         """)
 
     if i == 1:
-        cur.execute(f"SELECT gist_stat({idx_oid});")
-        stat = cur.fetchone()
-        stat = unpack(stat)
+        stat = dict()
+    cur.execute(f"SELECT gist_stat({idx_oid});")
 
-    else:
-        cur.execute(f"SELECT gist_stat({idx_oid});")
-        tmp = cur.fetchone()
-        tmp = unpack(stat)
-        tmp = tmp.values()
+    for key, value in unpack(cur.fetchone()).items():
+        if key in stat:
+            stat[key].append(value)
+        else:
+            stat[key] = [value]
 
     for key, value in stat.items():
         print(f'{key:<16} : {value[i - 1]:,}')
     print()
 
-    level = stat['Levels']
+    abc = pd.DataFrame(stat)
+    print(abc)
+
+    level = stat['Levels'][i - 1]
 
     level = [value for value in range(1, level + 1)]
 

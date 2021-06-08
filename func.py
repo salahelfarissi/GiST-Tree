@@ -13,7 +13,7 @@ def unpack(tuple):
     key = [item.replace(item, new_keys[i]) for i, item in enumerate(key)]
     value = [int(item[1].replace('bytes', '')) for item in enumerate(value)]
 
-    return {key[i]: [value[i]] for i in range(len(key))}
+    return {key[i]: value[i] for i in range(len(key))}
 
 
 def field_width(table):
