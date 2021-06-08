@@ -13,6 +13,45 @@ conn = connect("""
 cur = conn.cursor()
 
 cur.execute("""
+    CREATE TABLE IF NOT EXISTS indices (
+        idx_oid serial primary key,
+        idx_name varchar);
+        """)
+
+cur.execute("""
+    TRUNCATE TABLE indices;
+    """)
+
+cur.execute("""
+    INSERT INTO indices
+    WITH gt_name AS (
+        SELECT
+            f_table_name AS t_name
+        FROM geometry_columns
+    )
+    SELECT
+        CAST(c.oid AS INTEGER) as "OID",
+        c.relname as "INDEX"
+    FROM pg_class c, pg_index i
+    WHERE c.oid = i.indexrelid
+    AND c.relname IN (
+        SELECT
+            relname
+        FROM pg_class, pg_index
+        WHERE pg_class.oid = pg_index.indexrelid
+        AND pg_class.oid IN (
+            SELECT
+                indexrelid
+            FROM pg_index, pg_class
+            WHERE pg_class.relname IN (
+                SELECT t_name
+                FROM gt_name)
+            AND pg_class.oid = pg_index.indrelid
+            AND indisunique != 't'
+            AND indisprimary != 't' ));
+            """)
+
+cur.execute("""
     WITH gt_name AS (
         SELECT
             f_table_name AS t_name
@@ -43,7 +82,7 @@ cur.execute("""
 indices = cur.fetchall()
 indices = pd.Series(dict(indices))
 
-idx_oid = int(indices[indices == 'nyc_neighborhoods_geom_idx'].index[0])
+idx_oid = int(indices[indices == 'neighborhoods_knn_geom_idx'].index[0])
 
 cur.execute(""" 
     SELECT  
@@ -78,15 +117,11 @@ cur.execute("""
             [g_type[0], g_srid[0]])
 
 cur.execute("""
-    TRUNCATE TABLE neighborhoods_knn;
+    TRUNCATE TABLE neighborhoods_knn RESTART IDENTITY;
     """)
 
 cur.execute("""
-    DROP INDEX IF EXISTS neighborhoods_knn_geom_idx;
-    """)
-
-cur.execute("""
-    CREATE INDEX neighborhoods_knn_geom_idx
+    CREATE INDEX IF NOT EXISTS neighborhoods_knn_geom_idx
         ON neighborhoods_knn USING gist (geom);
         """)
 
