@@ -89,10 +89,8 @@ cur.execute("""
 g_srid = cur.fetchone()
 
 cur.execute(f"SELECT gist_stat({idx_oid});")
-stat = cur.fetchone()
 
-stat = unpack(stat)
-stat = pd.Series(stat)
+stat = pd.Series(unpack(cur.fetchone()))
 
 print(f"\nNumber of levels → {stat.Levels}\n")
 level = int(input("Level to visualize \n↳ "))
