@@ -1,12 +1,10 @@
-# R-Tree
+# GiST implementation of R-Tree
 
 ## Gevel
 
 [Gevel](http://www.sai.msu.su/~megera/wiki/Gevel "Gevel contrib module") contrib module provides several functions useful for analyzing GiST indexes.
 
 ### Install Instructions
-
----
 
 You need to have an installation of PostgreSQL of version **13** in order to use this build of gevel extension.
 
@@ -17,8 +15,6 @@ You will need to place the files that are located in **gevel_ext** folder into r
 - `gevel_ext.control` - Copy it to `C:\Program Files\PostgreSQL\13\share\extension\`.
 
 ### Usage
-
----
 
 #### Creating Extension
 
@@ -70,10 +66,57 @@ SELECT gist_tree(
             , 1);
 ```
 
-## Psycopg
+## Visualizations
 
-[Psycopg](https://www.psycopg.org/docs/index.html "Psycopg – PostgreSQL database adapter for Python") is a PostgreSQL database adapter for the Python programming language.
+To use the python programs that are located in the scripts folder. First you need to install `psycopg2` and `pandas` librairies using `pip`.
 
 ```bash
 pip install psycopg2-binary
+pip install pandas
 ```
+
+You will also need to install [QGIS](https://qgis.org/en/site/forusers/download.html) to display the bounding boxes of GiST index.
+
+### r_tree.py
+
+This clode block allows you to establish connection to your PostgreSQL database.
+
+```python
+conn = connect("""
+    host=localhost
+    dbname=nyc
+    user=postgres
+    """)
+```
+
+Please refer to [Psycopg2](https://www.psycopg.org/docs/usage.html) documentation for how to use this module.
+
+When you first run `r_tree.py`, you will get a list of all the indices with respective OID.
+
+```shell
+                       Index     OID
+------------------------------------
+      nyc_homicides_geom_idx   22318
+  nyc_census_blocks_geom_idx   22317
+nyc_subway_stations_geom_idx   22321
+        nyc_streets_geom_idx   22320
+  nyc_neighborhoods_geom_idx   22319
+
+
+Which GiST index do you want to visualize?
+OID →
+```
+
+You choose which index to visualize:
+
+```shell
+Which GiST index do you want to visualize?
+OID → 22320
+
+Number of levels → 3
+
+Level to visualize
+↳
+```
+
+Then you choose which level.
