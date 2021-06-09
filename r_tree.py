@@ -31,8 +31,8 @@ cur.execute("""
         FROM geometry_columns
     )
     SELECT
-        CAST(c.oid AS INTEGER) as "OID",
-        c.relname as "INDEX"
+        CAST(c.oid AS INTEGER) as "oid",
+        c.relname as "index"
     FROM pg_class c, pg_index i
     WHERE c.oid = i.indexrelid
     AND c.relname IN (
