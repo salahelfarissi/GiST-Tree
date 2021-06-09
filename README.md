@@ -44,6 +44,8 @@ SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i
 WHERE c.oid = i.indexrelid and c.relname = '*index_name*' LIMIT 1
 ```
 
+You can also use a query that I have provided in the queries folder to list all indices with respective OID.
+
 #### Using module
 
 Having OID of index, you can start using the extension. It supports 3 functions:
