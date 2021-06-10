@@ -139,7 +139,7 @@ for i in range(1, num_geometries + 1):
         FROM nyc_streets n
         ORDER by n.geom <-> (
             SELECT geom FROM nyc_streets
-            WHERE name = 'Tottensville')
+            WHERE gid = 12623)
         LIMIT 1
         OFFSET %s;
         """,
