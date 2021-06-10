@@ -92,8 +92,10 @@ cur.execute(f"SELECT gist_stat({idx_oid});")
 
 stat = pd.Series(unpack(cur.fetchone()))
 
-print(f"\nNumber of levels → {stat.Levels}\n")
-level = int(input("Level to visualize \n↳ "))
+print(f"\nTree has a depth of {stat.Levels}.\n")
+level = int(input("Which level do you want to visualize?\nLevel → "))
+
+print(f'\n{58:c}{45:c}{41:c}\n')
 
 cur.execute("""
     DROP TABLE IF EXISTS r_tree;
