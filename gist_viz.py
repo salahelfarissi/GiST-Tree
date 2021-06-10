@@ -13,6 +13,20 @@ conn = connect("""
 cur = conn.cursor()
 
 cur.execute("""
+    CREATE TABLE IF NOT EXISTS streets_knn (
+        geom geometry(MultiLineString, 26918));
+        """)
+
+cur.execute("""
+    TRUNCATE TABLE streets_knn;
+    """)
+
+cur.execute("""
+    CREATE INDEX IF NOT EXISTS streets_knn_geom_idx
+        ON streets_knn USING gist (geom);
+        """)
+
+cur.execute("""
     CREATE TABLE IF NOT EXISTS indices (
         idx_oid serial primary key,
         idx_name varchar);
@@ -56,7 +70,7 @@ cur.execute("""
     """)
 
 indices = pd.Series(dict(cur.fetchall()))
-idx_oid = int(indices[indices == 'neighborhoods_knn_geom_idx'].index[0])
+idx_oid = int(indices[indices == 'streets_knn_geom_idx'].index[0])
 
 cur.execute(""" 
     SELECT  
@@ -85,22 +99,7 @@ cur.execute("""
 g_srid = cur.fetchone()
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
-        geom geometry(%s, %s));
-        """,
-            [g_type[0], g_srid[0]])
-
-cur.execute("""
-    TRUNCATE TABLE neighborhoods_knn;
-    """)
-
-cur.execute("""
-    CREATE INDEX IF NOT EXISTS neighborhoods_knn_geom_idx
-        ON neighborhoods_knn USING gist (geom);
-        """)
-
-cur.execute("""
-    SELECT COUNT(*) FROM nyc_neighborhoods;
+    SELECT COUNT(*) FROM nyc_streets;
     """)
 num_geometries = cur.fetchone()[0]
 
@@ -134,12 +133,12 @@ def bbox(table, l):
 for i in range(1, num_geometries + 1):
 
     cur.execute("""
-        INSERT INTO neighborhoods_knn
+        INSERT INTO streets_knn
         SELECT
             n.geom
-        FROM nyc_neighborhoods n
+        FROM nyc_streets n
         ORDER by n.geom <-> (
-            SELECT geom FROM nyc_neighborhoods
+            SELECT geom FROM nyc_streets
             WHERE name = 'Tottensville')
         LIMIT 1
         OFFSET %s;
@@ -151,7 +150,7 @@ for i in range(1, num_geometries + 1):
         """)
 
     cur.execute("""
-        VACUUM ANALYZE neighborhoods_knn;
+        VACUUM ANALYZE streets_knn;
         """)
 
     if i == 1:

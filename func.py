@@ -1,6 +1,6 @@
 def unpack(tuple):
     lst = list(tuple)[0].splitlines()
-    lst = [" ".join(lst[e].split()) for e in range(len(lst))]
+    lst = [" ".join(v[1].split()) for v in enumerate(lst)]
     lst = [[el] for el in lst]
     lst = [sub.split(': ') for subl in lst for sub in subl]
 
@@ -8,12 +8,12 @@ def unpack(tuple):
     value = [i[1] for i in lst]
 
     new_keys = ['Levels', 'Pages', 'Leaf Pages', 'Tuples', 'Invalid Tuples',
-                'Leaf Tuples', 'Tuples Size', 'Leaf Tuples Size', 'Index Size']
+                'Leaf Tuples']
 
-    key = [item.replace(item, new_keys[i]) for i, item in enumerate(key)]
-    value = [int(item[1].replace('bytes', '')) for item in enumerate(value)]
+    key = [item.replace(item, new_keys[i]) for i, item in enumerate(new_keys)]
+    value = list(map(lambda a: int(a), filter(lambda b: b.isdigit(), value)))
 
-    return {key[i]: value[i] for i in range(len(key))}
+    return {key[i]: value[i] for i in range(len(value))}
 
 
 def field_width(table):
