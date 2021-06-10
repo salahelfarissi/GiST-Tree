@@ -27,76 +27,20 @@ cur.execute("""
         """)
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS indices (
-        idx_oid serial primary key,
-        idx_name varchar);
-        """)
-
-cur.execute("""
-    TRUNCATE TABLE indices RESTART IDENTITY;
+    CREATE OR REPLACE FUNCTION index_oid(varchar) RETURNS INTEGER as $$ 
+        SELECT CAST(c.oid AS INTEGER)
+	    FROM pg_class c, pg_index i 
+	    WHERE c.oid = i.indexrelid
+	    AND c.relname = $1
+	    LIMIT 1; 
+    $$ LANGUAGE SQL;;
     """)
 
 cur.execute("""
-    INSERT INTO indices
-    WITH gt_name AS (
-        SELECT
-            f_table_name AS t_name
-        FROM geometry_columns
-    )
-    SELECT
-        CAST(c.oid AS INTEGER) as "OID",
-        c.relname as "INDEX"
-    FROM pg_class c, pg_index i
-    WHERE c.oid = i.indexrelid
-    AND c.relname IN (
-        SELECT
-            relname
-        FROM pg_class, pg_index
-        WHERE pg_class.oid = pg_index.indexrelid
-        AND pg_class.oid IN (
-            SELECT
-                indexrelid
-            FROM pg_index, pg_class
-            WHERE pg_class.relname IN (
-                SELECT t_name
-                FROM gt_name)
-            AND pg_class.oid = pg_index.indrelid
-            AND indisunique != 't'
-            AND indisprimary != 't' ));
-            """)
-
-cur.execute("""
-    SELECT * FROM indices;
+    SELECT index_oid('streets_knn_geom_idx') FROM indices;
     """)
 
-indices = pd.Series(dict(cur.fetchall()))
-idx_oid = int(indices[indices == 'streets_knn_geom_idx'].index[0])
-
-cur.execute(""" 
-    SELECT  
-        type 
-    FROM geometry_columns 
-    WHERE f_table_name IN ( 
-	    SELECT tablename FROM indices 
-	    JOIN pg_indexes 
-        ON idx_name = indexname 
-	    WHERE idx_oid::integer = %s); 
-    """,
-            [idx_oid])
-g_type = cur.fetchone()
-
-cur.execute(""" 
-    SELECT  
-        srid 
-    FROM geometry_columns 
-    WHERE f_table_name IN ( 
-	    SELECT tablename FROM indices 
-	    JOIN pg_indexes 
-        ON idx_name = indexname 
-	    WHERE idx_oid::integer = %s); 
-    """,
-            [idx_oid])
-g_srid = cur.fetchone()
+idx_oid = cur.fetchone()[0]
 
 cur.execute("""
     SELECT COUNT(*) FROM nyc_streets;
@@ -120,12 +64,12 @@ def bbox(table, l):
 
     cur.execute(sql.SQL("""
         INSERT INTO {}
-        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
+        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """).format(
         sql.Identifier(table)
     ),
-        [g_srid[0], idx_oid, l])
+        [idx_oid, l])
 
     cur.execute("NOTIFY qgis;")
 
