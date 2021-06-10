@@ -6,7 +6,7 @@ import pandas as pd
 
 # Use connect class to establish connection to PostgreSQL
 conn = connect("""
-    host=192.168.1.106
+    host=localhost
     dbname=nyc
     user=postgres
     """)
