@@ -13,6 +13,7 @@ conn = connect("""
 
 cur = conn.cursor()
 
+# You find a sql function to execute beforehand in queries folder
 cur.execute("""
     SELECT * FROM indices();
             """)
