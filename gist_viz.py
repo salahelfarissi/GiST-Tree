@@ -5,7 +5,7 @@ from func import *
 import pandas as pd
 
 conn = connect("""
-    host=localhost
+    host=192.168.1.106
     dbname=nyc
     user=postgres
     """)
@@ -37,7 +37,7 @@ cur.execute("""
     """)
 
 cur.execute("""
-    SELECT index_oid('streets_knn_geom_idx') FROM indices;
+    SELECT index_oid('streets_knn_geom_idx');
     """)
 
 idx_oid = cur.fetchone()[0]
@@ -83,7 +83,7 @@ for i in range(1, num_geometries + 1):
         FROM nyc_streets n
         ORDER by n.geom <-> (
             SELECT geom FROM nyc_streets
-            WHERE gid = 12623)
+            WHERE id = 12623)
         LIMIT 1
         OFFSET %s;
         """,
