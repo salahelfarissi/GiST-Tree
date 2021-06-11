@@ -6,7 +6,7 @@ import pandas as pd
 
 # Use connect class to establish connection to PostgreSQL
 conn = connect("""
-    host=localhost
+    host=192.168.1.106
     dbname=nyc
     user=postgres
     """)
@@ -24,37 +24,8 @@ cur.execute("""
     """)
 
 cur.execute("""
-    INSERT INTO indices
-    WITH gt_name AS (
-        SELECT
-            f_table_name AS t_name
-        FROM geometry_columns
-    )
-    SELECT
-        CAST(c.oid AS INTEGER) as "OID",
-        c.relname as "INDEX"
-    FROM pg_class c, pg_index i
-    WHERE c.oid = i.indexrelid
-    AND c.relname IN (
-        SELECT
-            relname
-        FROM pg_class, pg_index
-        WHERE pg_class.oid = pg_index.indexrelid
-        AND pg_class.oid IN (
-            SELECT
-                indexrelid
-            FROM pg_index, pg_class
-            WHERE pg_class.relname IN (
-                SELECT t_name
-                FROM gt_name)
-            AND pg_class.oid = pg_index.indrelid
-            AND indisunique != 't'
-            AND indisprimary != 't' ));
+    SELECT * FROM indices();
             """)
-
-cur.execute("""
-    SELECT * FROM indices;
-    """)
 
 indices = cur.fetchall()
 
