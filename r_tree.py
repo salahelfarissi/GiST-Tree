@@ -14,45 +14,6 @@ conn = connect("""
 cur = conn.cursor()
 
 cur.execute("""
-    CREATE TABLE IF NOT EXISTS indices (
-        idx_oid serial primary key,
-        idx_name varchar);
-        """)
-
-cur.execute("""
-    TRUNCATE TABLE indices;
-    """)
-
-cur.execute("""
-    INSERT INTO indices
-    WITH gt_name AS (
-        SELECT
-            f_table_name AS t_name
-        FROM geometry_columns
-    )
-    SELECT
-        CAST(c.oid AS INTEGER) as "OID",
-        c.relname as "INDEX"
-    FROM pg_class c, pg_index i
-    WHERE c.oid = i.indexrelid
-    AND c.relname IN (
-        SELECT
-            relname
-        FROM pg_class, pg_index
-        WHERE pg_class.oid = pg_index.indexrelid
-        AND pg_class.oid IN (
-            SELECT
-                indexrelid
-            FROM pg_index, pg_class
-            WHERE pg_class.relname IN (
-                SELECT t_name
-                FROM gt_name)
-            AND pg_class.oid = pg_index.indrelid
-            AND indisunique != 't'
-            AND indisprimary != 't' ));
-            """)
-
-cur.execute("""
     SELECT * FROM indices();
             """)
 
@@ -79,10 +40,10 @@ cur.execute("""
         srid
     FROM geometry_columns
     WHERE f_table_name IN (
-	    SELECT tablename FROM indices
+	    SELECT tablename FROM indices()
 	    JOIN pg_indexes
-        ON idx_name = indexname
-	    WHERE idx_oid::integer = %s);
+        ON index = indexname
+	    WHERE oid::integer = %s);
     """,
             [idx_oid])
 
@@ -95,7 +56,7 @@ stat = pd.Series(unpack(cur.fetchone()))
 print(f"\nTree has a depth of {stat.Levels}.\n")
 level = int(input("Which level do you want to visualize?\nLevel → "))
 
-print(f'\n{58:c}{45:c}{41:c}\n')
+print(f'\n{58:c}{45:c}{41:c}')
 
 cur.execute("""
     DROP TABLE IF EXISTS r_tree;
