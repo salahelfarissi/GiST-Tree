@@ -33,7 +33,7 @@ cur.execute("""
 	    WHERE c.oid = i.indexrelid
 	    AND c.relname = $1
 	    LIMIT 1; 
-    $$ LANGUAGE SQL;;
+    $$ LANGUAGE SQL;
     """)
 
 cur.execute("""
