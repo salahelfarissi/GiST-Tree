@@ -1,4 +1,4 @@
-# GiST implementation of R-Tree
+# Visualizing GiST indexes
 
 ## Gevel
 
@@ -6,9 +6,9 @@
 
 ### Install Instructions
 
-You need to have an installation of PostgreSQL of version **13** in order to use this build of gevel extension.
+You need to have an installation of **_PostgreSQL of version 13_** in order to use this build of gevel extension.
 
-You will need to place the files that are located in **gevel_ext** folder into respective folders inside PostgreSQL folder.
+Afterwards place the files that are located in **gevel_ext** folder into respective folders inside PostgreSQL folder.
 
 - `gevel_ext.dll` - Copy it to `C:\Program Files\PostgreSQL\13\lib\`.
 - `gevel_ext.sql` - Copy it to `C:\Program Files\PostgreSQL\13\share\extension\` and rename to gevel_ext--1.0.sql.
@@ -16,7 +16,7 @@ You will need to place the files that are located in **gevel_ext** folder into r
 
 ### Usage
 
-#### Creating Extension
+1. #### Creating Extension
 
 First, you need to install module into database that contains index you want to analyze. Use this command to create extension:
 
@@ -25,11 +25,15 @@ DROP EXTENSION IF EXISTS gevel_ext CASCADE;
 CREATE EXTENSION gevel_ext;
 ```
 
-#### Getting Index OID
+2. #### Getting Index OID
 
-After this you should be able to use functions from the extension - functions doesn't accept name of the index but its OID. This has advantage that OID identifies index without any ambiguity and doesn't require specifying schemas and such.
+After this you should be able to use the functions from the extension.
 
-You can find OID of index for example through `pgadmin` by right clicking desired index and going into properties. However, it has also disadvantage that OID changes everytime index is recreated - which will be probably done if you are analyzing it.
+![image info](./screens/gevel_func.png)
+
+These functions do not accept name of the index but its OID. This has advantage that OID identifies index without any ambiguity and doesn't require specifying schemas and such.
+
+You can find OID of index for example through `pgadmin` by selecting the desired index and going into properties. However, it has also disadvantage that OID changes everytime index is recreated - which will be probably done if you are analyzing it.
 
 ![image info](./screens/pgadmin_oid.png)
 
@@ -38,37 +42,75 @@ In that case, it might be more convenient to get OID with SQL, which can be then
 ```sql
 SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i 
 WHERE c.oid = i.indexrelid and c.relname = '*index_name*' LIMIT 1
+
+--Example--
+
+SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i 
+WHERE c.oid = i.indexrelid and c.relname = 'sidx_nyc_census_blocks_geom' LIMIT 1
 ```
 
-You can also use a query that I have provided in the queries folder to list all indices with respective OID.
+| oid   |
+| ----- |
+| 60645 |
+
+You can also use a sql function that I have provided in the queries folder to list all indices with respective OID.
+
+```sql
+--After creating the function indices()--
+select * from indices();
+```
+
+| oid | index |
+| --- | ----- |
+| 60632 | sidx_nyc_neighborhoods_geom |
+| 60619 | sidx_nyc_streets_geom |
+| 60645 | sidx_nyc_census_blocks_geom |
+| 60628 | sidx_nyc_subway_stations_geom |
 
 #### Using module
 
-Having OID of index, you can start using the extension. It supports 3 functions:
+Having the OID of the desired index, you can start using the extension. It supports 3 functions:
 
-- **gist_stat** : Prints statistics about the index, such as it's size, number of leaf nodes, etc.
-- **gist_tree**(*index_name*, *max_level*) : Prints index as tree of internal nodes with number of tuples in each page and other data. The depth of tree can be controlled with the second argument.
-- **gist_print**(*index_name*) : Prints actual tuples that create index. For this to work, objects in index must have textual representation (they have to be printable).
+- **gist_stat(index_oid)** : Prints statistics about the index, such as it's size, number of leaf nodes, etc.
+- **gist_tree**(*index_oid*, *max_level*) : Prints index as tree of internal nodes with number of tuples in each page and other data. The depth of tree can be controlled with the second argument.
+- **gist_print**(*index_oid*) : Prints actual tuples that create index. For this to work, objects in index must have textual representation (they have to be printable).
 
 #### Examples
 
-Print index as tree with depth 1.
+> Print statistics about the index.
 
 ```sql
-SELECT gist_tree(
-    (
-        SELECT CAST(c.oid AS INTEGER)
-        FROM pg_class c, pg_index i 
-        WHERE c.oid = i.indexrelid
-        AND c.relname = 'nyc_streets_geom_idx'
-        LIMIT 1
-    )
-            , 1);
+select gist_stat(60645);
 ```
+
+| gist_stat |  |
+| -------------------------- | --- |
+| Number of levels:          | 3 |
+| Number of pages:           | 272 |
+| Number of leaf pages:      | 269 |
+| Number of tuples:          | 39065 |
+| Number of invalid tuples:  | 0 |
+| Number of leaf tuples:     | 38794 |
+| Total size of tuples:      | 1097084 bytes |
+| Total size of leaf tuples: | 1089460 bytes |
+| Total size of index:       | 2228224 bytes |
+
+> Print the actual bbox that constitues the index.
+
+```sql
+SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
+FROM (
+    SELECT * FROM gist_print(60645)
+    AS t(level int, valid bool, a box2df)
+    WHERE level = 3)
+    AS subq;
+```
+
+![image info](./screens/bbox.png)
 
 ## Visualizations
 
-To use the python programs that are located in the scripts folder. First you need to install `psycopg2` and `pandas` librairies using `pip`.
+To use the python programs. First you need to install `psycopg2` and `pandas` librairies using `pip`.
 
 ```bash
 pip install psycopg2-binary
