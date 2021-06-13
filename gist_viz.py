@@ -2,7 +2,6 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect, sql
 from func import *
-import pandas as pd
 
 conn = connect("""
     host=192.168.1.106
@@ -31,7 +30,7 @@ cur.execute("""
     SELECT oid FROM indices() WHERE index = 'streets_knn_geom_idx';
     """)
 
-idx_oid = cur.fetchone()[0]
+knn_idx_oid = cur.fetchone()[0]
 
 cur.execute("""
     SELECT COUNT(*) FROM nyc_streets;
@@ -60,7 +59,7 @@ def bbox(table, l):
         """).format(
         sql.Identifier(table)
     ),
-        [idx_oid, l])
+        [knn_idx_oid, l])
 
     cur.execute("NOTIFY qgis;")
 
@@ -90,7 +89,7 @@ for i in range(1, num_geometries + 1):
 
     if i == 1:
         stat = dict()
-    cur.execute(f"SELECT gist_stat({idx_oid});")
+    cur.execute(f"SELECT gist_stat({knn_idx_oid});")
 
     for key, value in unpack(cur.fetchone()).items():
         if key in stat:
@@ -99,7 +98,7 @@ for i in range(1, num_geometries + 1):
             stat[key] = [value]
 
     for key, value in stat.items():
-        print(f'{key:<16} : {value[i - 1]:,}')
+        print(f'{key:<14} : {value[i - 1]:,}')
     print()
 
     level = stat['Levels'][i - 1]
