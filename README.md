@@ -83,7 +83,7 @@ Having the OID of the desired index, you can start using the extension. It suppo
 select gist_stat(60645);
 ```
 
-| gist_stat |  |
+|  |  |
 | -------------------------- | --- |
 | Number of levels:          | 3 |
 | Number of pages:           | 272 |
