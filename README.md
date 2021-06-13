@@ -84,16 +84,16 @@ select gist_stat(60645);
 ```
 
 | gist_stat | value |
-| -------------------------- | --- |
-| Number of levels:          | 3 |
-| Number of pages:           | 272 |
-| Number of leaf pages:      | 269 |
-| Number of tuples:          | 39065 |
-| Number of invalid tuples:  | 0 |
-| Number of leaf tuples:     | 38794 |
-| Total size of tuples:      | 1097084 bytes |
-| Total size of leaf tuples: | 1089460 bytes |
-| Total size of index:       | 2228224 bytes |
+| -------------------------- | ---: |
+| Levels          | 3 |
+| Pages           | 272 |
+| Leaf Pages      | 269 |
+| Tuples          | 39065 |
+| Invalid Tuples  | 0 |
+| Leaf Tuples     | 38794 |
+| Tuples Size _(bytes)_      | 1,097,084 |
+| Leaf Tuples Size _(bytes)_ | 1,089,460 |
+| Index Size _(bytes)_       | 2,228,224 |
 
 > Print the actual bbox that constitues the index.
 
