@@ -27,3 +27,27 @@ CREATE OR REPLACE FUNCTION indices() RETURNS TABLE(oid integer, index varchar)
             AND indisprimary != 't' ));
 	$$
     LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION g_srid(integer) RETURNS integer
+    AS $$ SELECT 
+        srid
+    FROM geometry_columns
+    WHERE f_table_name IN (
+	    SELECT tablename FROM indices()
+	    JOIN pg_indexes
+        ON index = indexname
+	    WHERE oid::integer = $1);
+    $$
+    LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION g_type(integer) RETURNS varchar
+    AS $$ SELECT 
+        type
+    FROM geometry_columns
+    WHERE f_table_name IN (
+	    SELECT tablename FROM indices()
+	    JOIN pg_indexes
+        ON index = indexname
+	    WHERE oid::integer = $1);
+    $$
+    LANGUAGE SQL;

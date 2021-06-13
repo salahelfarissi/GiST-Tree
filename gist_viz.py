@@ -26,18 +26,9 @@ cur.execute("""
         ON streets_knn USING gist (geom);
         """)
 
+# indices() function must be created beforehand
 cur.execute("""
-    CREATE OR REPLACE FUNCTION index_oid(varchar) RETURNS INTEGER as $$ 
-        SELECT CAST(c.oid AS INTEGER)
-	    FROM pg_class c, pg_index i 
-	    WHERE c.oid = i.indexrelid
-	    AND c.relname = $1
-	    LIMIT 1; 
-    $$ LANGUAGE SQL;
-    """)
-
-cur.execute("""
-    SELECT index_oid('streets_knn_geom_idx');
+    SELECT oid FROM indices() WHERE index = 'streets_knn_geom_idx';
     """)
 
 idx_oid = cur.fetchone()[0]

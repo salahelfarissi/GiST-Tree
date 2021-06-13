@@ -36,28 +36,17 @@ except ValueError:
     idx_oid = int(input("""
         \nYou must enter an integer value!\nOID → """))
 
-cur.execute("""
-    SELECT 
-        srid
-    FROM geometry_columns
-    WHERE f_table_name IN (
-	    SELECT tablename FROM indices()
-	    JOIN pg_indexes
-        ON index = indexname
-	    WHERE oid::integer = %s);
-    """,
-            [idx_oid])
-
+# g_srid() function must be created beforehand (queries folder)
+cur.execute("SELECT g_srid(%s);", [idx_oid])
 g_srid = cur.fetchone()
 
 cur.execute(f"SELECT gist_stat({idx_oid});")
-
 stat = pd.Series(unpack(cur.fetchone()))
 
 print(f"\nTree has a depth of {stat.Levels}.\n")
 level = int(input("Which level do you want to visualize?\nLevel → "))
 
-print(f'\n{58:c}{45:c}{41:c}')
+print(f'\n{58:c}{45:c}{41:c}\n')
 
 cur.execute("""
     DROP TABLE IF EXISTS r_tree;
