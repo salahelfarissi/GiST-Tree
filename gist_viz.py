@@ -2,90 +2,115 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect, sql
 from func import *
+import pandas as pd
 
-conn = connect("""
+conn = connect(
+    """
     host=192.168.1.106
     dbname=nyc
     user=postgres
-    """)
+    """
+)
 
 cur = conn.cursor()
 
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS streets_knn (
-        geom geometry(MultiLineString, 26918));
-        """)
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
+        geom geometry(MultiPolygon, 26918));
+        """
+)
 
-cur.execute("""
-    TRUNCATE TABLE streets_knn;
-    """)
+cur.execute(
+    """
+    TRUNCATE TABLE neighborhoods_knn;
+    """
+)
 
-cur.execute("""
-    CREATE INDEX IF NOT EXISTS streets_knn_geom_idx
-        ON streets_knn USING gist (geom);
-        """)
+cur.execute(
+    """
+    CREATE INDEX IF NOT EXISTS neighborhoods_knn_geom_idx
+        ON neighborhoods_knn USING gist (geom);
+        """
+)
 
 # indices() function must be created beforehand
-cur.execute("""
-    SELECT oid FROM indices() WHERE index = 'streets_knn_geom_idx';
-    """)
+cur.execute(
+    """
+    SELECT oid FROM indices() WHERE index = 'neighborhoods_knn_geom_idx';
+    """
+)
 
 knn_idx_oid = cur.fetchone()[0]
 
-cur.execute("""
-    SELECT COUNT(*) FROM nyc_streets;
-    """)
+cur.execute(
+    """
+    SELECT COUNT(*) FROM nyc_neighborhoods;
+    """
+)
 num_geometries = cur.fetchone()[0]
 
 
 def bbox(table, l):
 
-    cur.execute(sql.SQL("""
+    cur.execute(
+        sql.SQL(
+            """
         CREATE TABLE IF NOT EXISTS {} (
             geom geometry);
-        """).format(
-        sql.Identifier(table)
-    ))
+        """
+        ).format(sql.Identifier(table))
+    )
 
-    cur.execute(sql.SQL("""
-        TRUNCATE TABLE {}""").format(
-        sql.Identifier(table)
-    ))
+    cur.execute(
+        sql.SQL(
+            """
+        TRUNCATE TABLE {}"""
+        ).format(sql.Identifier(table))
+    )
 
-    cur.execute(sql.SQL("""
+    cur.execute(
+        sql.SQL(
+            """
         INSERT INTO {}
         SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
-        """).format(
-        sql.Identifier(table)
-    ),
-        [knn_idx_oid, l])
+        """
+        ).format(sql.Identifier(table)),
+        [knn_idx_oid, l],
+    )
 
     cur.execute("NOTIFY qgis;")
 
 
 for i in range(1, num_geometries + 1):
 
-    cur.execute("""
-        INSERT INTO streets_knn
+    cur.execute(
+        """
+        INSERT INTO neighborhoods_knn
         SELECT
             n.geom
-        FROM nyc_streets n
+        FROM nyc_neighborhoods n
         ORDER by n.geom <-> (
-            SELECT geom FROM nyc_streets
-            WHERE id = 12623)
+            SELECT geom FROM nyc_neighborhoods
+            WHERE id = 82)
         LIMIT 1
         OFFSET %s;
         """,
-                [i - 1])
+        [i - 1],
+    )
 
-    cur.execute("""
+    cur.execute(
+        """
         END;
-        """)
+        """
+    )
 
-    cur.execute("""
-        VACUUM ANALYZE streets_knn;
-        """)
+    cur.execute(
+        """
+        VACUUM ANALYZE neighborhoods_knn;
+        """
+    )
 
     if i == 1:
         stat = dict()
@@ -98,22 +123,22 @@ for i in range(1, num_geometries + 1):
             stat[key] = [value]
 
     for key, value in stat.items():
-        print(f'{key:<14} : {value[i - 1]:,}')
+        print(f"{key:<14} : {value[i - 1]:,}")
     print()
 
-    level = stat['Levels'][i - 1]
+    level = stat["Levels"][i - 1]
 
     level = [value for value in range(1, level + 1)]
 
     if len(level) == 1:
-        bbox('r_tree_l2', 1)
+        bbox("r_tree_l2", 1)
 
     else:
         for l in level:
             if l == 1:
-                bbox('r_tree_l1', 1)
+                bbox("r_tree_l1", 1)
             else:
-                bbox('r_tree_l2', 2)
+                bbox("r_tree_l2", 2)
 
 conn.commit()
 
