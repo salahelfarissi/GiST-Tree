@@ -28,9 +28,9 @@ CREATE EXTENSION gevel_ext;
 2. #### Getting Index OID
 
 After this you should be able to use the functions from the extension.
-
+<div style="text-align:center">
 <img src="./screens/gevel_func.png" alt="Getting Index OID" width="200"/>
-
+</div>
 These functions do not accept name of the index but its OID. This has advantage that OID identifies index without any ambiguity and doesn't require specifying schemas and such.
 
 You can find OID of index for example through `pgadmin` by selecting the desired index and going into properties. However, it has also disadvantage that OID changes everytime index is recreated - which will be probably done if you are analyzing it.
