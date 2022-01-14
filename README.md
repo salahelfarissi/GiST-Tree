@@ -108,6 +108,8 @@ FROM (
 
 ![image info](./screens/bbox.png)
 
+Add a gif instead !
+
 ## Visualizations
 
 To use the python programs. First you need to install `psycopg2` and `pandas` librairies using `pip`.

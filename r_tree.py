@@ -58,7 +58,7 @@ stat = pd.Series(unpack(cur.fetchone()))
 print(f"\nTree has a depth of {stat.Levels}.\n")
 level = int(input("Which level do you want to visualize?\nLevel → "))
 
-print(f"\n{58:c}{45:c}{41:c}\n")
+print("\n¯\_(ツ)_/¯\n")
 
 cur.execute(
     """

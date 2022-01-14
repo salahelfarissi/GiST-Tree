@@ -41,7 +41,7 @@ cur.execute(
     """
 )
 
-idx_oid = cur.fetchone()[0]
+knn_idx_oid = cur.fetchone()[0]
 
 cur.execute(
     """
@@ -77,7 +77,7 @@ def bbox(table, l):
         FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
         """
         ).format(sql.Identifier(table)),
-        [idx_oid, l],
+        [knn_idx_oid, l],
     )
 
     cur.execute("NOTIFY qgis;")
@@ -90,10 +90,10 @@ for i in range(1, num_geometries + 1):
         INSERT INTO streets_knn
         SELECT
             n.geom
-        FROM nyc_streets n
+        FROM nyc_neighborhoods n
         ORDER by n.geom <-> (
-            SELECT geom FROM nyc_streets
-            WHERE id = 12623)
+            SELECT geom FROM nyc_neighborhoods
+            WHERE id = 82)
         LIMIT 1
         OFFSET %s;
         """,
@@ -114,7 +114,7 @@ for i in range(1, num_geometries + 1):
 
     if i == 1:
         stat = dict()
-    cur.execute(f"SELECT gist_stat({idx_oid});")
+    cur.execute(f"SELECT gist_stat({knn_idx_oid});")
 
     for key, value in unpack(cur.fetchone()).items():
         if key in stat:
