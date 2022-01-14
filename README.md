@@ -35,7 +35,8 @@ These functions do not accept name of the index but its OID. This has advantage 
 
 You can find OID of index for example through `pgadmin` by selecting the desired index and going into properties. However, it has also disadvantage that OID changes everytime index is recreated - which will be probably done if you are analyzing it.
 
-![image info](./screens/pgadmin_oid.png)
+<img src="./screens/pgadmin_oid.png" alt="Getting Index OID" width="500"/>
+
 
 In that case, it might be more convenient to get OID with SQL, which can be then used when executing function (substitute for `*index_name*` name of your index):
 
@@ -106,9 +107,7 @@ FROM (
     AS subq;
 ```
 
-![image info](./screens/bbox.png)
-
-Add a gif instead !
+<img src="./screens/bbox.png" alt="BBoxes" width="500"/>
 
 ## Visualizations
 
