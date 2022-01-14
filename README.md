@@ -164,3 +164,8 @@ Level to visualize
 ```
 
 Then you choose which level.
+
+## Copyright
+
+© EL FARISSI SalahEddine, &#127979; [IAV Hassan II](https://iav.ac.ma/),
+&#128231; elfarissi.salaheddine@iav.ac.ma
