@@ -29,7 +29,7 @@ CREATE EXTENSION gevel_ext;
 
 After this you should be able to use the functions from the extension.
 
-![image info](./screens/gevel_func.png)
+<img src="./screens/gevel_func.png" alt="Getting Index OID" width="200"/>
 
 These functions do not accept name of the index but its OID. This has advantage that OID identifies index without any ambiguity and doesn't require specifying schemas and such.
 

@@ -6,7 +6,7 @@ import pandas as pd
 
 conn = connect(
     """
-    host=192.168.1.106
+    host=localhost
     dbname=nyc
     user=postgres
     """
@@ -16,28 +16,28 @@ cur = conn.cursor()
 
 cur.execute(
     """
-    CREATE TABLE IF NOT EXISTS neighborhoods_knn (
-        geom geometry(MultiPolygon, 26918));
+    CREATE TABLE IF NOT EXISTS streets_knn (
+        geom geometry(MultiLineString, 26918));
         """
 )
 
 cur.execute(
     """
-    TRUNCATE TABLE neighborhoods_knn;
+    TRUNCATE TABLE streets_knn;
     """
 )
 
 cur.execute(
     """
-    CREATE INDEX IF NOT EXISTS neighborhoods_knn_geom_idx
-        ON neighborhoods_knn USING gist (geom);
+    CREATE INDEX IF NOT EXISTS streets_knn_geom_idx
+        ON streets_knn USING gist (geom);
         """
 )
 
 # indices() function must be created beforehand
 cur.execute(
     """
-    SELECT oid FROM indices() WHERE index = 'neighborhoods_knn_geom_idx';
+    SELECT oid FROM indices() WHERE index = 'streets_knn_geom_idx';
     """
 )
 
@@ -45,7 +45,7 @@ knn_idx_oid = cur.fetchone()[0]
 
 cur.execute(
     """
-    SELECT COUNT(*) FROM nyc_neighborhoods;
+    SELECT COUNT(*) FROM nyc_streets;
     """
 )
 num_geometries = cur.fetchone()[0]
@@ -87,7 +87,7 @@ for i in range(1, num_geometries + 1):
 
     cur.execute(
         """
-        INSERT INTO neighborhoods_knn
+        INSERT INTO streets_knn
         SELECT
             n.geom
         FROM nyc_neighborhoods n
@@ -108,7 +108,7 @@ for i in range(1, num_geometries + 1):
 
     cur.execute(
         """
-        VACUUM ANALYZE neighborhoods_knn;
+        VACUUM ANALYZE streets_knn;
         """
     )
 
@@ -123,7 +123,7 @@ for i in range(1, num_geometries + 1):
             stat[key] = [value]
 
     for key, value in stat.items():
-        print(f"{key:<14} : {value[i - 1]:,}")
+        print(f"{key:<16} : {value[i - 1]:,}")
     print()
 
     level = stat["Levels"][i - 1]
