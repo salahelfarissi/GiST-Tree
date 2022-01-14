@@ -90,10 +90,10 @@ for i in range(1, num_geometries + 1):
         INSERT INTO streets_knn
         SELECT
             n.geom
-        FROM nyc_neighborhoods n
+        FROM nyc_streets n
         ORDER by n.geom <-> (
-            SELECT geom FROM nyc_neighborhoods
-            WHERE id = 82)
+            SELECT geom FROM nyc_streets
+            WHERE id = 12623)
         LIMIT 1
         OFFSET %s;
         """,
