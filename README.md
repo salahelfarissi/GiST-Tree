@@ -42,7 +42,7 @@ In that case, it might be more convenient to get OID with SQL, which can be then
 
 ```sql
 SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i 
-WHERE c.oid = i.indexrelid and c.relname = '*index_name*' LIMIT 1
+WHERE c.oid = i.indexrelid and c.relname = '*index_name*' LIMIT 1;
 
 --Example--
 
@@ -51,7 +51,7 @@ WHERE c.oid = i.indexrelid and c.relname = 'sidx_nyc_census_blocks_geom' LIMIT 1
 ```
 
 | oid   |
-| ----- |
+|-------|
 | 60645 |
 
 You can also use a sql function that I have provided in the queries folder to list all indices with respective OID.
@@ -61,11 +61,11 @@ You can also use a sql function that I have provided in the queries folder to li
 select * from indices();
 ```
 
-| oid | index |
-| --- | ----- |
-| 60632 | sidx_nyc_neighborhoods_geom |
-| 60619 | sidx_nyc_streets_geom |
-| 60645 | sidx_nyc_census_blocks_geom |
+| oid   | index                         |
+|-------|-------------------------------|
+| 60632 | sidx_nyc_neighborhoods_geom   |
+| 60619 | sidx_nyc_streets_geom         |
+| 60645 | sidx_nyc_census_blocks_geom   |
 | 60628 | sidx_nyc_subway_stations_geom |
 
 #### Using module
@@ -84,14 +84,14 @@ Having the OID of the desired index, you can start using the extension. It suppo
 select gist_stat(60645);
 ```
 
-| gist_stat | value |
-| -------------------------- | ---: |
-| Levels          | 3 |
-| Pages           | 272 |
-| Leaf Pages      | 269 |
-| Tuples          | 39065 |
-| Invalid Tuples  | 0 |
-| Leaf Tuples     | 38794 |
+| gist_stat                  |     value |
+|----------------------------|----------:|
+| Levels                     |         3 |
+| Pages                      |       272 |
+| Leaf Pages                 |       269 |
+| Tuples                     |     39065 |
+| Invalid Tuples             |         0 |
+| Leaf Tuples                |     38794 |
 | Tuples Size _(bytes)_      | 1,097,084 |
 | Leaf Tuples Size _(bytes)_ | 1,089,460 |
 | Index Size _(bytes)_       | 2,228,224 |
@@ -99,10 +99,10 @@ select gist_stat(60645);
 > Print the actual bbox that constitues the index.
 
 ```sql
-SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
+SELECT postgis.st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
 FROM (
     SELECT * FROM gist_print(60645)
-    AS t(level int, valid bool, a box2df)
+    AS t(level int, valid bool, a postgis.box2df)
     WHERE level = 3)
     AS subq;
 ```

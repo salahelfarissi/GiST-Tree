@@ -2,7 +2,6 @@
 """Display r-tree bboxes"""
 from psycopg2 import connect, sql
 from func import *
-import pandas as pd
 
 conn = connect(
     """
@@ -51,7 +50,7 @@ cur.execute(
 num_geometries = cur.fetchone()[0]
 
 
-def bbox(table, l):
+def bbox(table, scope):
 
     cur.execute(
         sql.SQL(
@@ -73,15 +72,17 @@ def bbox(table, l):
         sql.SQL(
             """
         INSERT INTO {}
-        SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
-        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+        SELECT postgis.st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
+        FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a postgis.box2df) WHERE level = %s) AS subq
         """
         ).format(sql.Identifier(table)),
-        [knn_idx_oid, l],
+        [knn_idx_oid, scope],
     )
 
     cur.execute("NOTIFY qgis;")
 
+
+stat = dict()
 
 for i in range(1, num_geometries + 1):
 
@@ -112,8 +113,6 @@ for i in range(1, num_geometries + 1):
         """
     )
 
-    if i == 1:
-        stat = dict()
     cur.execute(f"SELECT gist_stat({knn_idx_oid});")
 
     for key, value in unpack(cur.fetchone()).items():
@@ -134,8 +133,8 @@ for i in range(1, num_geometries + 1):
         bbox("r_tree_l2", 1)
 
     else:
-        for l in level:
-            if l == 1:
+        for j in level:
+            if j == 1:
                 bbox("r_tree_l1", 1)
             else:
                 bbox("r_tree_l2", 2)

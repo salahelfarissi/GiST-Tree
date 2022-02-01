@@ -4,7 +4,7 @@ from psycopg2 import connect
 from func import *  # user defined functions
 import pandas as pd
 
-# Use connect class to establish connection to PostgreSQL
+# Use connect class to establish connection to Postgres
 conn = connect(
     """
     host=localhost
@@ -18,8 +18,7 @@ cur = conn.cursor()
 # You find a sql function to execute beforehand in queries folder
 cur.execute(
     """
-    SELECT * FROM indices();
-            """
+    SELECT * FROM public.indices(); """
 )
 
 indices = cur.fetchall()
@@ -78,8 +77,8 @@ cur.execute(
 cur.execute(
     """
     INSERT INTO r_tree (geom)
-    SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
-    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
+    SELECT postgis.st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
+    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a postgis.box2df) WHERE level = %s) AS subq
     """,
     [g_srid[0], idx_oid, level],
 )
