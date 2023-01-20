@@ -1,8 +1,12 @@
-# Visualizing GiST indexes
+# Visualizing GiST index
+
+## GiST
+
+GiST stands for Generalized Search Tree. It is a balanced, tree-structured access method, that acts as a base template in which to implement arbitrary indexing schemes. B-trees, **R-trees** and many other indexing schemes can be implemented in GiST. For more information, please read the following article: [GiST](http://gist.cs.berkeley.edu/gist1.html).
 
 ## Gevel
 
-[Gevel](http://www.sai.msu.su/~megera/wiki/Gevel "Gevel contrib module") contrib module provides several functions useful for analyzing GiST indexes.
+[Gevel](http://www.sai.msu.su/~megera/wiki/Gevel "Gevel contrib module") contrib module provides several functions useful for analyzing GiST indexes. 
 
 ### Install Instructions
 
@@ -163,8 +167,3 @@ Level to visualize
 ```
 
 Then you choose which level.
-
-## Copyright
-
-© EL FARISSI SalahEddine, &#127979; [IAV Hassan II](https://iav.ac.ma/),
-&#128231; elfarissi.salaheddine@iav.ac.ma
