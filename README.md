@@ -2,7 +2,9 @@
 
 ## GiST
 
+<p align='center'>
 ![](https://github.com/salahelfarissi/GiST-Tree/blob/main/screens/animation.gif)
+</p>
 
 GiST stands for Generalized Search Tree. It is a balanced, tree-structured access method, that acts as a base template in which to implement arbitrary indexing schemes. B-trees, **R-trees** and many other indexing schemes can be implemented in GiST. For more information, please read the following article: [GiST](http://gist.cs.berkeley.edu/gist1.html).
 
