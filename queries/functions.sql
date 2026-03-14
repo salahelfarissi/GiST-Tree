@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION indices() RETURNS TABLE(oid integer, index varchar)
 	gt_name AS (
         SELECT
             f_table_name AS t_name
-        FROM postgis.geometry_columns
+        FROM geometry_columns
     )
     SELECT
         CAST(c.oid AS INTEGER) as "oid",
@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION indices() RETURNS TABLE(oid integer, index varchar)
 CREATE OR REPLACE FUNCTION g_srid(integer) RETURNS integer
     AS $$ SELECT 
         srid
-    FROM postgis.geometry_columns
+    FROM geometry_columns
     WHERE f_table_name IN (
 	    SELECT tablename FROM indices()
 	    JOIN pg_indexes
@@ -41,9 +41,9 @@ CREATE OR REPLACE FUNCTION g_srid(integer) RETURNS integer
     LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION g_type(integer) RETURNS varchar
-    AS $$ SELECT 
+    AS $$ SELECT
         type
-    FROM postgis.geometry_columns
+    FROM geometry_columns
     WHERE f_table_name IN (
 	    SELECT tablename FROM indices()
 	    JOIN pg_indexes

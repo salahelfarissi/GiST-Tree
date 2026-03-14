@@ -8,8 +8,10 @@ import pandas as pd
 conn = connect(
     """
     host=localhost
+    port=5433
     dbname=nyc
     user=postgres
+    password=postgres
     """
 )
 
@@ -47,11 +49,14 @@ except ValueError:
         )
     )
 
+# Look up index name — pramsey/gevel takes index name (text), not OID
+idx_name = next(name for oid, name in indices if oid == idx_oid)
+
 # g_srid() function must be created beforehand (queries folder)
 cur.execute("SELECT g_srid(%s);", [idx_oid])
 g_srid = cur.fetchone()
 
-cur.execute(f"SELECT gist_stat({idx_oid});")
+cur.execute("SELECT gist_stat(%s);", [idx_name])
 stat = pd.Series(unpack(cur.fetchone()))
 
 print(f"\nTree has a depth of {stat.Levels}.\n")
@@ -77,10 +82,10 @@ cur.execute(
 cur.execute(
     """
     INSERT INTO r_tree (geom)
-    SELECT postgis.st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
-    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a postgis.box2df) WHERE level = %s) AS subq
+    SELECT st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, %s)
+    FROM (SELECT * FROM gist_print(%s) as t(level int, valid bool, a box2df) WHERE level = %s) AS subq
     """,
-    [g_srid[0], idx_oid, level],
+    [g_srid[0], idx_name, level],
 )
 
 conn.commit()

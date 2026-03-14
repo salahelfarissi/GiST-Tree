@@ -1,0 +1,17 @@
+services:
+  db:
+    build: .
+    environment:
+      POSTGRES_DB: nyc
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./queries/functions.sql:/docker-entrypoint-initdb.d/02_functions.sql
+      - ./queries/viz_tables.sql:/docker-entrypoint-initdb.d/04_viz_tables.sql
+      - ./data:/data:ro
+
+volumes:
+  pgdata:

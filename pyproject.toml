@@ -1,0 +1,9 @@
+[project]
+name = "gist-tree"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=3.0.1",
+    "psycopg2-binary>=2.9.11",
+]
