@@ -1,119 +1,100 @@
 # Visualizing GiST index
 
-<p align='center'>
-    <img src='https://github.com/salahelfarissi/GiST-Tree/blob/main/screens/animation.gif' height='300'>
-</p>
+![Animation](https://github.com/salahelfarissi/GiST-Tree/blob/main/screens/animation.gif)
 
-## GiST
+## Concepts
+
+### GiST
 
 GiST stands for Generalized Search Tree. It is a balanced, tree-structured access method, that acts as a base template in which to implement arbitrary indexing schemes. B-trees, **R-trees** and many other indexing schemes can be implemented in GiST. For more information, please read the following article: [GiST](http://gist.cs.berkeley.edu/gist1.html).
 
-## Gevel
+### Gevel
 
-[Gevel](http://www.sai.msu.su/~megera/wiki/Gevel "Gevel contrib module") contrib module provides several functions useful for analyzing GiST indexes. 
+[Gevel](http://www.sai.msu.su/~megera/wiki/Gevel "Gevel contrib module") contrib module provides several functions useful for analyzing GiST indexes.
+
+## Setup
 
 ### Install Instructions
 
-You need to have an installation of **_PostgreSQL of version 13_** in order to use this build of gevel extension.
+Use the `justfile` in this repository to build and run PostgreSQL + PostGIS +
+`gevel` without installing PostgreSQL on your machine.
 
-Afterwards place the files that are located in **gevel_ext** folder into respective folders inside PostgreSQL folder.
+```bash
+just build
+just run
+just wait-ready
+```
 
-- `gevel_ext.dll` - Copy it to `C:\Program Files\PostgreSQL\13\lib\`.
-- `gevel_ext.sql` - Copy it to `C:\Program Files\PostgreSQL\13\share\extension\` and rename to gevel_ext--1.0.sql.
-- `gevel_ext.control` - Copy it to `C:\Program Files\PostgreSQL\13\share\extension\`.
+Extensions (`postgis` and `gevel`) are enabled automatically on first start via `init.sql`.
 
 ### Usage
 
-1. #### Creating Extension
-
-First, you need to install module into database that contains index you want to analyze. Use this command to create extension:
-
-```sql
-DROP EXTENSION IF EXISTS gevel_ext CASCADE;
-CREATE EXTENSION gevel_ext;
-```
-
-2. #### Getting Index OID
+#### Choosing Index Name
 
 After this you should be able to use the functions from the extension.
-<p align='center'>
-    <img src="./screens/gevel_func.png" alt="Getting Index OID" width="200"/>
-</p>
 
-These functions do not accept name of the index but its OID. This has advantage that OID identifies index without any ambiguity and doesn't require specifying schemas and such.
+- git_stat
+- git_tree
+- git_print
 
-You can find OID of index for example through `pgadmin` by selecting the desired index and going into properties. However, it has also disadvantage that OID changes everytime index is recreated - which will be probably done if you are analyzing it.
+These functions accept the **index name** as `text` (for example
+`'nyc_streets_geom_geom_idx'`).
 
-<p align='center'>
-    <img src="./screens/pgadmin_oid.png" alt="Getting Index OID" width="500"/>
-</p>
+Use a schema-qualified name to avoid ambiguity when multiple schemas contain
+indexes with the same name.
 
-In that case, it might be more convenient to get OID with SQL, which can be then used when executing function (substitute for `*index_name*` name of your index):
-
-```sql
-SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i 
-WHERE c.oid = i.indexrelid and c.relname = '*index_name*' LIMIT 1;
-
---Example--
-
-SELECT CAST(c.oid AS INTEGER) FROM pg_class c, pg_index i 
-WHERE c.oid = i.indexrelid and c.relname = 'sidx_nyc_census_blocks_geom' LIMIT 1
-```
-
-| oid   |
-|-------|
-| 60645 |
-
-You can also use a sql function that I have provided in the queries folder to list all indices with respective OID.
+You can list available GiST index names with SQL:
 
 ```sql
---After creating the function indices()--
-select * from indices();
+SELECT n.nspname || '.' || c.relname AS index_name
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+JOIN pg_index i ON i.indexrelid = c.oid
+JOIN pg_am am ON am.oid = c.relam
+WHERE am.amname = 'gist'
+ORDER BY 1;
 ```
-
-| oid   | index                         |
-|-------|-------------------------------|
-| 60632 | sidx_nyc_neighborhoods_geom   |
-| 60619 | sidx_nyc_streets_geom         |
-| 60645 | sidx_nyc_census_blocks_geom   |
-| 60628 | sidx_nyc_subway_stations_geom |
 
 #### Using module
 
-Having the OID of the desired index, you can start using the extension. It supports 3 functions:
+Having the index name, you can start using the extension. It supports 3
+functions:
 
-- **gist_stat(index_oid)** : Prints statistics about the index, such as it's size, number of leaf nodes, etc.
-- **gist_tree**(*index_oid*, *max_level*) : Prints index as tree of internal nodes with number of tuples in each page and other data. The depth of tree can be controlled with the second argument.
-- **gist_print**(*index_oid*) : Prints actual tuples that create index. For this to work, objects in index must have textual representation (they have to be printable).
+- **gist_stat(index_name)** : Prints statistics about the index, such as it's
+  size, number of leaf nodes, etc.
+- **gist_tree**(_index_name_, _max_level_) : Prints index as tree of internal
+  nodes with number of tuples in each page and other data. The depth of tree
+  can be controlled with the second argument.
+- **gist_print**(_index_name_) : Prints actual tuples that create index. For
+  this to work, objects in index must have textual representation (they have to
+  be printable).
 
 #### Examples
 
 > Print statistics about the index.
 
 ```sql
-select gist_stat(60645);
+select gist_stat('nyc_streets_geom_geom_idx');
 ```
 
-| gist_stat                  |     value |
-|----------------------------|----------:|
-| Levels                     |         3 |
-| Pages                      |       272 |
-| Leaf Pages                 |       269 |
-| Tuples                     |     39065 |
-| Invalid Tuples             |         0 |
-| Leaf Tuples                |     38794 |
-| Tuples Size _(bytes)_      | 1,097,084 |
-| Leaf Tuples Size _(bytes)_ | 1,089,460 |
-| Index Size _(bytes)_       | 2,228,224 |
+Number of levels: 2
+Number of pages: 124
+Number of leaf pages: 123
+Number of tuples: 19214
+Number of invalid tuples: 0
+Number of leaf tuples: 19091
+Total size of tuples: 539480 bytes
+Total size of leaf tuples: 536024 bytes
+Total size of index: 1015808 bytes
 
 > Print the actual bbox that constitues the index.
 
 ```sql
-SELECT postgis.st_setsrid(replace(a::text, '2DF', '')::box2d::geometry, 26918)
+SELECT ST_SetSRID(replace(a::text, '2DF', '')::box2d::geometry, 26918)
 FROM (
-    SELECT * FROM gist_print(60645)
-    AS t(level int, valid bool, a postgis.box2df)
-    WHERE level = 3)
+    SELECT * FROM gist_print('nyc_streets_geom_geom_idx')
+    AS t(level int, valid bool, a box2df)
+    WHERE level = 2)
     AS subq;
 ```
 
@@ -139,7 +120,7 @@ This clode block allows you to establish connection to your PostgreSQL database.
 ```python
 conn = connect("""
     host=localhost
-    dbname=nyc
+    dbname=postgres
     user=postgres
     """)
 ```
